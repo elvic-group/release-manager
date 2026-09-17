@@ -77,6 +77,7 @@ function createMusicReleaseServer(): McpServer {
         _meta: {
           ui: {
             prefersBorder: true,
+            domain: "https://release-manager-production-bb96.up.railway.app",
             csp: { connectDomains: [], resourceDomains: [] },
           },
           "openai/widgetDescription":
