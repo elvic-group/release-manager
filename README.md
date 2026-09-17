@@ -1,6 +1,8 @@
-# Release Manager
+# Music Release Manager
 
-Release Manager is a Codex plugin for independent artists and labels. It helps organize a music release from final audio, artwork, metadata, and distributor delivery through editorial pitching, lyrics, smart links, social content, advertising, press, radio, and release-day follow-through.
+Music Release Manager is a Codex plugin for independent artists and record labels. It helps organize the release of a song, single, EP, or album from final audio, artwork, metadata, and distributor delivery through editorial pitching, lyrics, smart links, social content, advertising, press, radio, and release-day follow-through.
+
+This plugin is for **music releases**, not software or app releases.
 
 It starts with a blank release record. It does not contain any artist's private release files or assume that a previous release's dates, credits, identifiers, contacts, or links apply to a new one. It prepares and checks work; submissions, public posts, outreach, and spending require specific authorization.
 

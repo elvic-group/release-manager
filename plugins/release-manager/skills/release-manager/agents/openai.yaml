@@ -1,4 +1,0 @@
-interface:
-  display_name: "Release Manager"
-  short_description: "By Elvic Records, part of Elvic Gruppen AS"
-  default_prompt: "Help me plan a music release. Identify the artist, date, current stage, and the next three actions."

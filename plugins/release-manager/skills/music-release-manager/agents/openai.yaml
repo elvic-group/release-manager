@@ -1,0 +1,4 @@
+interface:
+  display_name: "Music Release Manager"
+  short_description: "Plan and promote releases for music artists"
+  default_prompt: "Use $music-release-manager to help me plan a song, EP, or album release."
