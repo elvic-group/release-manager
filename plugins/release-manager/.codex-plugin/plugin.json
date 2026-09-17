@@ -1,0 +1,22 @@
+{
+  "name": "release-manager",
+  "version": "1.0.0",
+  "description": "Plan, prepare, track, and promote music releases for independent artists and labels.",
+  "author": {
+    "name": "Elvic Records, part of Elvic Gruppen AS"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Release Manager",
+    "shortDescription": "By Elvic Records, part of Elvic Gruppen AS.",
+    "longDescription": "A practical music-release workspace for independent artists and labels. Plan and track every stage of a release—from final files and metadata to distributor delivery, Spotify, lyrics, smart links, social content, advertising, press, radio, and release-day follow-through.",
+    "developerName": "Elvic Records, part of Elvic Gruppen AS",
+    "category": "Productivity",
+    "capabilities": [],
+    "brandColor": "#F4B51C",
+    "composerIcon": "./assets/release-manager-logo.png",
+    "logo": "./assets/release-manager-logo.png",
+    "logoDark": "./assets/release-manager-logo.png",
+    "defaultPrompt": "Help me plan a music release. Identify the artist, date, current stage, and the next three actions."
+  }
+}

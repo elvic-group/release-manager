@@ -1,0 +1,20 @@
+{
+  "name": "elvic-records",
+  "interface": {
+    "displayName": "Elvic Records"
+  },
+  "plugins": [
+    {
+      "name": "release-manager",
+      "source": {
+        "source": "local",
+        "path": "./plugins/release-manager"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
