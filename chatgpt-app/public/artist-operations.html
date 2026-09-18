@@ -49,7 +49,6 @@
       .bar { align-self: end; min-height: 7px; border-radius: 4px 4px 0 0; background: #e1ad35; }
       .bar-wrap span { overflow: hidden; color: #aaa298; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
       ul { margin: 0; padding-left: 18px; color: #d8d1c7; font-size: 13px; line-height: 1.5; }
-      .warning { border-left: 3px solid #c58a3c; }
       .empty { color: #aaa298; font-size: 13px; }
       [hidden] { display: none !important; }
       @media (max-width: 560px) { body { padding: 10px; } main { padding: 17px; } .grid, .selection, .metrics { grid-template-columns: 1fr; } .hero { grid-template-columns: 72px minmax(0, 1fr); } .cover { width: 72px; } }
@@ -72,7 +71,7 @@
       const copyButton = (value) => `<button class="copy" type="button" data-copy="${escapeHtml(value)}">Copy</button>`;
       const entry = (label, value, status) => `<div class="entry"><div><div class="label">${escapeHtml(label)}</div>${value ? `<div class="meta">${escapeHtml(value)}</div>` : ""}</div>${tag(status)}</div>`;
       const section = (title, content, wide = false, extra = "") => content ? `<section class="section ${wide ? "wide" : ""} ${extra}"><h2>${escapeHtml(title)}</h2>${content}</section>` : "";
-      const confirmation = (items) => items?.length ? section("Confirm before use", `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`, true, "warning") : "";
+      const confirmation = (items) => items?.length ? section("Confirm before use", `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`, true) : "";
 
       function renderReleaseCard(data) {
         byId("title").textContent = `${data.artist} - ${data.releaseTitle}`;
