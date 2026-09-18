@@ -244,7 +244,7 @@ function createMusicReleaseServer(): McpServer {
             csp: { connectDomains: [], resourceDomains: [] },
           },
           "openai/widgetDescription":
-            "A compact black-and-gold music release plan showing the current phase, next actions and readiness gaps.",
+            "A compact black-and-gold music release workspace showing release phases, readiness gaps or Norway-aware artist support priorities.",
         },
       },
     ],
@@ -491,6 +491,7 @@ function createMusicReleaseServer(): McpServer {
           },
         ],
         structuredContent,
+        _meta: { "openai/outputTemplate": widgetUri },
       };
     }
   );

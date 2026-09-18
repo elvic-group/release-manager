@@ -8,15 +8,20 @@
       :root { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
       * { box-sizing: border-box; }
       body { margin: 0; padding: 14px; color: #f8f5ed; background: transparent; }
-      main { max-width: 620px; margin: auto; padding: 22px; border-radius: 24px; background: radial-gradient(circle at 85% 0%, #3a2a0d 0, transparent 34%), linear-gradient(145deg, #151515, #080808); border: 1px solid #4e401f; box-shadow: 0 18px 50px #0004; }
+      main { max-width: 620px; margin: auto; padding: 22px; border-radius: 8px; background: linear-gradient(145deg, #151515, #080808); border: 1px solid #4e401f; box-shadow: 0 18px 50px #0004; }
       .brand { color: #f4b51c; font-size: 12px; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
       h1 { margin: 8px 0 4px; font-size: 25px; line-height: 1.15; }
       .sub { margin: 0 0 18px; color: #bbb5aa; font-size: 14px; }
       .score { display: grid; place-items: center; width: 76px; height: 76px; border-radius: 50%; border: 7px solid #f4b51c; font-size: 19px; font-weight: 900; }
       .row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
       .actions { display: grid; gap: 8px; margin: 18px 0; }
-      .action, .phase { padding: 11px 13px; border-radius: 13px; background: #ffffff0d; border: 1px solid #ffffff14; }
+      .action, .phase { padding: 11px 13px; border-radius: 6px; background: #ffffff0d; border: 1px solid #ffffff14; }
       .action { border-left: 3px solid #f4b51c; }
+      .action p { margin: 7px 0 0; color: #d8d2c8; font-size: 13px; line-height: 1.45; }
+      .action .meta { color: #aaa397; font-size: 12px; }
+      .resources { margin-top: 18px; }
+      .resources a { color: #f4d88d; }
+      .resources li { margin: 6px 0; }
       .phases { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 15px; }
       .phase { padding: 8px 4px; text-align: center; color: #9b958b; font-size: 11px; }
       .phase.current { color: #151008; background: #f4b51c; font-weight: 800; }
@@ -41,6 +46,10 @@
       </div>
       <div class="actions" id="actions"></div>
       <div class="phases" id="phases"></div>
+      <section class="resources" id="resources" hidden>
+        <h2>Norwegian starting points</h2>
+        <ul id="resourceList"></ul>
+      </section>
       <div class="lists" id="lists" hidden>
         <section><h2>Ready</h2><ul id="ready"></ul></section>
         <section><h2>Missing</h2><ul id="missing"></ul></section>
@@ -55,21 +64,36 @@
 
       function render() {
         if (!output) return;
+        byId("resources").hidden = output.kind !== "norway-support-plan";
+
+        if (output.kind === "norway-support-plan") {
+          byId("title").textContent = output.artistName || "Artist project";
+          byId("subtitle").textContent = [output.area, output.artistRole, output.projectFocus].filter(Boolean).join(" · ");
+          byId("score").hidden = true;
+          byId("lists").hidden = true;
+          byId("phases").hidden = true;
+          byId("actions").innerHTML = (output.nextActions || []).map((item) => `<article class="action"><strong>${item.priority}. ${escapeHtml(item.title)}</strong><p>${escapeHtml(item.action)}</p><p><strong>Why:</strong> ${escapeHtml(item.why)}</p><p class="meta"><strong>Check with:</strong> ${escapeHtml(item.verifyWith)}</p></article>`).join("");
+          byId("resourceList").innerHTML = (output.resources || []).map((item) => `<li><a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(item.name)}</a> — ${escapeHtml(item.use)}</li>`).join("");
+          byId("note").textContent = output.currentInfoNote || "Check current deadlines, eligibility and costs with the official funder.";
+          return;
+        }
+
         byId("title").textContent = `${output.artist} — ${output.title}`;
         byId("subtitle").textContent = `${output.releaseType ? output.releaseType.toUpperCase() + " · " : ""}${output.releaseDate}`;
-        byId("actions").innerHTML = (output.nextActions || []).map((item, index) => `<div class="action"><strong>${index + 1}.</strong> ${escapeHtml(item)}</div>`).join("");
         byId("note").textContent = output.safetyNote || byId("note").textContent;
 
         if (output.kind === "plan") {
           byId("score").hidden = true;
           byId("lists").hidden = true;
           byId("phases").hidden = false;
+          byId("actions").innerHTML = (output.nextActions || []).map((item, index) => `<div class="action"><strong>${index + 1}.</strong> ${escapeHtml(item)}</div>`).join("");
           byId("phases").innerHTML = (output.phases || []).map((phase) => `<div class="phase ${phase.status}">${phase.number}<br>${escapeHtml(phase.name)}</div>`).join("");
         } else {
           byId("score").hidden = false;
           byId("score").textContent = `${output.score}%`;
           byId("phases").hidden = true;
           byId("lists").hidden = false;
+          byId("actions").innerHTML = (output.nextActions || []).map((item, index) => `<div class="action"><strong>${index + 1}.</strong> ${escapeHtml(item)}</div>`).join("");
           byId("ready").innerHTML = list(output.ready);
           byId("missing").innerHTML = list(output.missing);
         }

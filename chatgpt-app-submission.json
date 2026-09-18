@@ -3,8 +3,8 @@
   "schema_version": 1,
   "app_info": {
     "display_name": "Music Release Manager",
-    "subtitle": "Plan music releases",
-    "description": "Music Release Manager helps independent artists and record labels plan and check releases of singles, EPs, and albums. It creates a phased plan covering final assets, distribution, artist profiles, smart links, promotion, press, radio, release day, and follow-through. It can also check six supplied readiness items and identify the next missing actions. The app does not access music or social accounts, store release records, publish content, submit releases, send outreach, activate advertising, or spend money.",
+    "subtitle": "Music release planning",
+    "description": "Music Release Manager helps independent artists and labels plan releases, check readiness from supplied facts, and get practical, role-aware starting steps for common music-career obstacles in Norway. It does not publish releases, access distributor accounts, or verify current funding deadlines or eligibility.",
     "category": "PRODUCTIVITY"
   },
   "tools": {
@@ -15,9 +15,9 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Computes and returns a release plan from the supplied fields without saving data or changing any account or external system.",
-        "open_world_justification": "Does not contact distributors, music platforms, social networks, advertisers, or other third-party services.",
-        "destructive_justification": "Cannot delete, overwrite, publish, send, submit, activate, purchase, or perform another irreversible action."
+        "read_only_justification": "Calculates a release timeline and next actions from the artist's supplied details without saving or changing release data.",
+        "open_world_justification": "The tool does not contact distributors or publish, submit, or send anything to external services.",
+        "destructive_justification": "The tool does not delete, overwrite, or change any data or account state."
       }
     },
     "check_music_release_readiness": {
@@ -27,77 +27,89 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Calculates a readiness score and missing checklist items from user-supplied booleans without storing or changing data.",
-        "open_world_justification": "Does not access or affect external accounts, platforms, websites, or public content.",
-        "destructive_justification": "Only returns a checklist analysis and has no delete, overwrite, posting, messaging, submission, advertising, or payment capability."
+        "read_only_justification": "Calculates a readiness score and missing checklist items using only facts supplied in the request.",
+        "open_world_justification": "The tool does not access distributor accounts or communicate with streaming, advertising, or other external services.",
+        "destructive_justification": "The tool does not delete, overwrite, or change any data or account state."
+      }
+    },
+    "create_norway_artist_support_plan": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Builds general next-step recommendations from the artist's selected role, project focus, location, and obstacle without storing the answers.",
+        "open_world_justification": "The tool returns curated official starting-point links but does not browse them, submit forms, or change public or third-party state.",
+        "destructive_justification": "The tool does not delete, overwrite, or change any data or account state."
       }
     }
   },
   "test_cases": [
     {
-      "description": "Create an early-stage single release plan.",
-      "user_prompt": "Create a release plan for my single Midnight Drive by Nova Lane, releasing 2026-11-20. I am still preparing the master and artwork.",
+      "description": "Create a stage-aware plan for an upcoming single.",
+      "user_prompt": "Help Elvic Kongolo plan the single Times Up for 2027-01-22. The master and cover are ready, and distribution is next.",
       "file_attachment_urls": null,
       "tools_triggered": "create_music_release_plan",
-      "expected_output": "Returns a seven-phase music release plan with foundation as the current phase and three practical next actions, without claiming that any external task is completed.",
+      "expected_output": "Returns the release phases, marks the current planning phase and gives the next priorities without claiming that earlier work was verified.",
       "expected_output_url": null
     },
     {
-      "description": "Plan an EP already submitted to distribution.",
-      "user_prompt": "Plan the remaining release work for the EP Northern Lights by Echo North, due 2026-12-04. Distribution is submitted and we are starting promotion.",
-      "file_attachment_urls": null,
-      "tools_triggered": "create_music_release_plan",
-      "expected_output": "Returns a music-specific plan beginning around profiles, editorial, listener paths, and promotion, while treating earlier phases as unverified rather than automatically complete.",
-      "expected_output_url": null
-    },
-    {
-      "description": "Check a partially prepared single.",
-      "user_prompt": "Check readiness for my single Ocean Fire by Mira. Release date is 2026-10-30. Master, cover, and credits are ready; distributor, smart link, and promotion plan are not ready.",
+      "description": "Check readiness when some release checklist items are missing.",
+      "user_prompt": "Check readiness for my single Northbound on 2027-02-12. The master, artwork, and metadata are done, but it is not submitted to the distributor and the smart link and promotion plan are not ready.",
       "file_attachment_urls": null,
       "tools_triggered": "check_music_release_readiness",
-      "expected_output": "Returns a 50% checklist score, separates the three ready and three missing items, and prioritizes the missing actions.",
+      "expected_output": "Scores only the six supplied checklist answers, identifies the three missing items, and suggests practical next actions.",
       "expected_output_url": null
     },
     {
-      "description": "Check a fully prepared album checklist.",
-      "user_prompt": "Check readiness for the album Open Skies by The Lanterns, releasing 2027-01-15. The final master, artwork, metadata and credits, distributor submission, smart link, and promotion plan are all ready.",
+      "description": "Give a Norway-aware plan for a songwriter facing a funding obstacle.",
+      "user_prompt": "I am a songwriter in Trondheim preparing a release and need help with funding. What should I do first?",
+      "file_attachment_urls": null,
+      "tools_triggered": "create_norway_artist_support_plan",
+      "expected_output": "Returns three role- and project-aware actions with official starting points, and clearly says current deadlines and eligibility were not checked.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Tailor support to a producer with limited capacity for live work.",
+      "user_prompt": "I produce music in Norway and want to start playing live, but I have very little time. Help me choose realistic next steps.",
+      "file_attachment_urls": null,
+      "tools_triggered": "create_norway_artist_support_plan",
+      "expected_output": "Returns practical capacity, producer-role, and live-project priorities without promising bookings, income, or funding.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Confirm a release checklist where all stated requirements are complete.",
+      "user_prompt": "Everything is done for my EP, including the final master, rights-cleared artwork, confirmed metadata, distributor submission, tested smart link, and promotion plan. Check readiness for 2027-03-05.",
       "file_attachment_urls": null,
       "tools_triggered": "check_music_release_readiness",
-      "expected_output": "Returns a 100% checklist score and no missing checklist items, while avoiding guarantees about DSP availability or commercial success.",
-      "expected_output_url": null
-    },
-    {
-      "description": "Create a release-week plan without external actions.",
-      "user_prompt": "My single Golden Hour by Luma releases 2026-09-25 and it is release week. Show me the highest-priority plan, but do not post or send anything.",
-      "file_attachment_urls": null,
-      "tools_triggered": "create_music_release_plan",
-      "expected_output": "Returns press, radio, release-day, and follow-through priorities and explicitly confirms that nothing was published, sent, submitted, activated, or charged.",
+      "expected_output": "Reports 100% based on the six answers provided and does not imply that any external platform or release is independently verified.",
       "expected_output_url": null
     }
   ],
   "negative_test_cases": [
     {
-      "description": "Do not use the app for software releases.",
-      "user_prompt": "Prepare release notes and a rollback plan for version 3.2 of my mobile app.",
+      "description": "Do not invoke for unrelated software deployment work.",
+      "user_prompt": "Help me deploy a Python API to production and configure its database migrations.",
       "file_attachment_urls": null,
       "tools_triggered": null,
-      "expected_output": "The plugin should not be invoked because it manages music releases, not software, app, website, code, or deployment releases.",
+      "expected_output": "The app should not be invoked because the request is about software deployment rather than music releases or artist support.",
       "expected_output_url": null
     },
     {
-      "description": "Do not imply unsupported social publishing.",
-      "user_prompt": "Publish my new music video to Instagram and TikTok right now.",
+      "description": "Do not imply the app can distribute or publish a release.",
+      "user_prompt": "Log in to my distributor and deliver my album to Spotify today.",
       "file_attachment_urls": null,
       "tools_triggered": null,
-      "expected_output": "The plugin should not invoke a tool or claim publication because it has no account access or publishing capability.",
+      "expected_output": "The app should explain that it cannot access distributor accounts or submit or publish releases.",
       "expected_output_url": null
     },
     {
-      "description": "Do not use the app for unrelated tour booking.",
-      "user_prompt": "Book a five-city European concert tour and pay the venue deposits.",
+      "description": "Do not claim to verify live grant deadlines or eligibility.",
+      "user_prompt": "Check live sources and tell me the exact current deadline and eligibility for every Oslo music grant.",
       "file_attachment_urls": null,
       "tools_triggered": null,
-      "expected_output": "The plugin should not be invoked because venue booking and payments are outside its music-release planning scope.",
+      "expected_output": "The app should not present a support-plan result as live research; it should direct the user to verify current calls and eligibility with official funders.",
       "expected_output_url": null
     }
   ]
