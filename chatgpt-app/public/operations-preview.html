@@ -33,12 +33,19 @@
         content: { kind: "content-selector", artist: "Elvic Kongolo", releaseTitle: "Times Up", language: "English", selectedItems: ["release-description", "press-email", "social-captions", "short-video-ideas", "image-briefs"], notes: "Create drafts from artist-approved facts only. Do not invent release history, credits or availability.", confirmBeforeUse: ["Confirm the final factual input before generating content."], safetyNote: "Preview selection only. No content is generated or saved here." },
         operations: { kind: "operations-snapshot", artist: "Elvic Kongolo", releaseTitle: "Times Up", tasks: [{ title: "Confirm artwork rights", owner: "Artist", dueDate: "Before delivery", status: "in-progress" }, { title: "Confirm contributor credits", owner: "Artist + collaborators", dueDate: "Before delivery", status: "not-started" }, { title: "Prepare release copy", owner: "Label", dueDate: "Before campaign", status: "not-started" }], metrics: [{ label: "Pre-saves", value: 42, previousValue: 35, source: "Example only" }, { label: "Link visits", value: 128, previousValue: 0, source: "Example only" }, { label: "Content posts", value: 3, previousValue: 0, source: "Example only" }], reportingPeriod: "Sample snapshot", confirmBeforeUse: ["Replace sample figures with artist-supplied or approved connected-source data."], safetyNote: "Preview data only. No task was saved and no analytics account was accessed." },
       };
-      document.querySelectorAll("iframe[data-key]").forEach((frame) => { frame.src = "/next-widgets-preview/artist-operations.html"; });
+      const sendSample = (frame) => {
+        if (!frame.contentWindow) return;
+        frame.contentWindow.postMessage({ jsonrpc: "2.0", id: "initialize", result: {} }, "*");
+        frame.contentWindow.postMessage({ jsonrpc: "2.0", method: "ui/notifications/tool-result", params: { structuredContent: samples[frame.dataset.key] } }, "*");
+      };
+      document.querySelectorAll("iframe[data-key]").forEach((frame) => {
+        frame.addEventListener("load", () => sendSample(frame));
+        frame.src = "/next-widgets-preview/artist-operations.html";
+      });
       window.addEventListener("message", (event) => {
         const frame = Array.from(document.querySelectorAll("iframe[data-key]")).find((item) => item.contentWindow === event.source);
         if (!frame || event.data?.method !== "ui/initialize") return;
-        event.source.postMessage({ jsonrpc: "2.0", id: "initialize", result: {} }, "*");
-        event.source.postMessage({ jsonrpc: "2.0", method: "ui/notifications/tool-result", params: { structuredContent: samples[frame.dataset.key] } }, "*");
+        sendSample(frame);
       });
     </script>
   </body>
