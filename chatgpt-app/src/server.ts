@@ -17,9 +17,16 @@ const rootDir = path.resolve(dirname, "..");
 const releaseDashboardUri = "ui://music-release-manager/release-dashboard-v1.html";
 const contentStudioUri = "ui://music-release-manager/content-studio-v1.html";
 const campaignStudioUri = "ui://music-release-manager/campaign-studio-v1.html";
+const releaseCardUri = "ui://music-release-manager/release-card-v1.html";
+const metadataChecklistUri = "ui://music-release-manager/metadata-checklist-v1.html";
+const concertCardUri = "ui://music-release-manager/concert-card-v1.html";
+const pressPitchUri = "ui://music-release-manager/press-pitch-v1.html";
+const contentSelectorUri = "ui://music-release-manager/content-selector-v1.html";
+const operationsBoardUri = "ui://music-release-manager/operations-board-v1.html";
 const releaseDashboardHtml = readFileSync(path.join(rootDir, "public", "widget.html"), "utf8");
 const contentStudioHtml = readFileSync(path.join(rootDir, "public", "content-studio.html"), "utf8");
 const campaignStudioHtml = readFileSync(path.join(rootDir, "public", "campaign-studio.html"), "utf8");
+const artistOperationsHtml = readFileSync(path.join(rootDir, "public", "artist-operations.html"), "utf8");
 
 const phaseNames = [
   "Foundation",
@@ -294,6 +301,33 @@ const campaignMeasurementSchema = z.object({
   trackingNotes: z.string().max(2_000),
 });
 
+const releaseTrackSchema = z.object({
+  title: z.string().min(1).max(160),
+  artistCredit: z.string().max(180).optional(),
+  duration: z.string().max(20).optional(),
+  status: z.enum(["confirmed", "to-confirm"]).default("to-confirm"),
+});
+
+const releaseMetadataItemSchema = z.object({
+  label: z.string().min(1).max(180),
+  value: z.string().max(500).optional(),
+  status: z.enum(["ready", "missing", "to-confirm"]),
+});
+
+const releaseTaskSchema = z.object({
+  title: z.string().min(1).max(240),
+  dueDate: z.string().max(40).optional(),
+  owner: z.string().max(120).optional(),
+  status: z.enum(["not-started", "in-progress", "done", "blocked"]),
+});
+
+const releaseMetricSchema = z.object({
+  label: z.string().min(1).max(120),
+  value: z.number().nonnegative(),
+  previousValue: z.number().nonnegative().optional(),
+  source: z.string().max(160).optional(),
+});
+
 function startIndexForStage(stage: z.infer<typeof stageSchema>): number {
   return {
     idea: 0,
@@ -307,10 +341,10 @@ function startIndexForStage(stage: z.infer<typeof stageSchema>): number {
 
 function createMusicReleaseServer(): McpServer {
   const server = new McpServer(
-    { name: "music-release-manager", version: "1.4.0" },
+    { name: "music-release-manager", version: "1.5.0" },
     {
       instructions:
-        "This server is exclusively for music—not software. It provides music-release planning, readiness checks, Norway-aware artist support, an Artist Content Studio, and ChatGPT Ads campaign briefs. When an artist asks for release copy, promotional assets, or an ad plan, use the conversation and user-provided files as source material, do not invent biographical, release, performance, rights, pricing, or platform facts, and write requested drafts in the artist's language. Use create_artist_content_pack for copyable release assets and create_music_ad_campaign_brief for copyable campaign planning. Put unknowns in the relevant confirmation list. The ad brief does not access Ads Manager, verify availability or policy, buy advertising, add payment, launch a campaign, or collect performance data. If the artist explicitly asks you to fill fields, use only the available in-app browser and the artist's current, intended page; fill only requested fields and do not submit. Sending, publishing, scheduling, submitting, activating ads, or spending money always requires separate explicit approval. Never ask for passwords or authentication codes. Verify current funding deadlines, eligibility, ad availability, costs, formats, targeting, and platform rules with the official source before acting.",
+        "This server is exclusively for music—not software. It provides music-release planning, readiness checks, Norway-aware artist support, an Artist Content Studio, and ChatGPT Ads campaign briefs. It can also create read-only artist operations widgets for release summaries, metadata checklists, concert details, press-pitch drafts, content-pack selections, and manually supplied tasks or metrics. When an artist asks for release copy, promotional assets, or an ad plan, use the conversation and user-provided files as source material, do not invent biographical, release, performance, rights, pricing, or platform facts, and write requested drafts in the artist's language. Use create_artist_content_pack for copyable release assets and create_music_ad_campaign_brief for copyable campaign planning. Put unknowns in the relevant confirmation list. The ad brief does not access Ads Manager, verify availability or policy, buy advertising, add payment, launch a campaign, or collect performance data. If the artist explicitly asks you to fill fields, use only the available in-app browser and the artist's current, intended page; fill only requested fields and do not submit. Sending, publishing, scheduling, submitting, activating ads, or spending money always requires separate explicit approval. Never ask for passwords or authentication codes. Verify current funding deadlines, eligibility, ad availability, costs, formats, targeting, and platform rules with the official source before acting.",
     }
   );
 
@@ -355,6 +389,189 @@ function createMusicReleaseServer(): McpServer {
       },
     ],
   }));
+
+  const registerOperationsResource = (name: string, uri: string, description: string) =>
+    registerAppResource(server, name, uri, {}, async () => ({
+      contents: [
+        {
+          uri,
+          mimeType: RESOURCE_MIME_TYPE,
+          text: artistOperationsHtml,
+          _meta: widgetMetadata(description),
+        },
+      ],
+    }));
+
+  registerOperationsResource(
+    "release-card",
+    releaseCardUri,
+    "An artist and release summary card with confirmed details, release status, and clear information gaps."
+  );
+  registerOperationsResource(
+    "metadata-checklist",
+    metadataChecklistUri,
+    "A tracklist and metadata checklist that keeps credits, rights, and delivery fields clearly separated."
+  );
+  registerOperationsResource(
+    "concert-card",
+    concertCardUri,
+    "A concert planning card with supplied event details, promotion prompts, and confirmation gaps."
+  );
+  registerOperationsResource(
+    "press-pitch",
+    pressPitchUri,
+    "A copyable press-pitch draft that is editable and never sends an email."
+  );
+  registerOperationsResource(
+    "content-selector",
+    contentSelectorUri,
+    "A draft content-pack selector for choosing desired writing and creative outputs before generation."
+  );
+  registerOperationsResource(
+    "operations-board",
+    operationsBoardUri,
+    "A release task and manually supplied performance snapshot workspace; it never creates tasks or retrieves analytics."
+  );
+
+  registerAppTool(
+    server,
+    "create_release_card",
+    {
+      title: "Create artist release card",
+      description:
+        "Use when an artist wants a compact visual summary of a release. Show only supplied artist, release, artwork, status, and milestone details. List unknown details for confirmation. This tool does not access profiles, create artwork, save data, submit a release, or publish anything.",
+      inputSchema: {
+        artist: z.string().min(1).max(120),
+        releaseTitle: z.string().min(1).max(160),
+        releaseType: releaseTypeSchema,
+        releaseDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        genre: z.string().max(120).optional(),
+        releaseStatus: z.enum(["planning", "in-production", "submitted", "scheduled", "released"]),
+        milestones: z.array(releaseMetadataItemSchema).max(12).default([]),
+        confirmBeforeUse: z.array(z.string().max(500)).max(12).default([]),
+      },
+      outputSchema: {
+        kind: z.literal("release-card"), artist: z.string(), releaseTitle: z.string(), releaseType: z.string(), releaseDate: z.string().nullable(), genre: z.string().nullable(), releaseStatus: z.string(), milestones: z.array(releaseMetadataItemSchema), confirmBeforeUse: z.array(z.string()), safetyNote: z.string(),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false, idempotentHint: true },
+      _meta: { ui: { resourceUri: releaseCardUri }, "openai/toolInvocation/invoking": "Building release card", "openai/toolInvocation/invoked": "Release card ready" },
+    },
+    async ({ artist, releaseTitle, releaseType, releaseDate, genre, releaseStatus, milestones, confirmBeforeUse }) => {
+      const structuredContent = { kind: "release-card" as const, artist, releaseTitle, releaseType, releaseDate: releaseDate ?? null, genre: genre ?? null, releaseStatus, milestones, confirmBeforeUse, safetyNote: "This is a supplied-details summary only. It does not verify status, access accounts, submit a release, or publish anything." };
+      return { content: [{ type: "text" as const, text: `Prepared a release card for ${artist} - ${releaseTitle}.` }], structuredContent, _meta: { "openai/outputTemplate": releaseCardUri } };
+    }
+  );
+
+  registerAppTool(
+    server,
+    "create_tracklist_metadata_checklist",
+    {
+      title: "Create tracklist and metadata checklist",
+      description:
+        "Use when an artist needs a clear release tracklist, credit, rights, and delivery checklist. Only organize supplied information; mark missing or unconfirmed information clearly. This tool does not register works, submit metadata, contact a distributor, or modify any external system.",
+      inputSchema: {
+        artist: z.string().min(1).max(120), releaseTitle: z.string().min(1).max(160), releaseType: releaseTypeSchema,
+        tracks: z.array(releaseTrackSchema).min(1).max(40), metadata: z.array(releaseMetadataItemSchema).max(30).default([]), rights: z.array(releaseMetadataItemSchema).max(30).default([]), delivery: z.array(releaseMetadataItemSchema).max(30).default([]), confirmBeforeUse: z.array(z.string().max(500)).max(16).default([]),
+      },
+      outputSchema: {
+        kind: z.literal("metadata-checklist"), artist: z.string(), releaseTitle: z.string(), releaseType: z.string(), tracks: z.array(releaseTrackSchema), metadata: z.array(releaseMetadataItemSchema), rights: z.array(releaseMetadataItemSchema), delivery: z.array(releaseMetadataItemSchema), confirmBeforeUse: z.array(z.string()), safetyNote: z.string(),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false, idempotentHint: true },
+      _meta: { ui: { resourceUri: metadataChecklistUri }, "openai/toolInvocation/invoking": "Organizing metadata checklist", "openai/toolInvocation/invoked": "Metadata checklist ready" },
+    },
+    async ({ artist, releaseTitle, releaseType, tracks, metadata, rights, delivery, confirmBeforeUse }) => {
+      const structuredContent = { kind: "metadata-checklist" as const, artist, releaseTitle, releaseType, tracks, metadata, rights, delivery, confirmBeforeUse, safetyNote: "This checklist organizes supplied details only. Verify credits, rights, identifiers, contracts, and distributor requirements before registration or delivery." };
+      return { content: [{ type: "text" as const, text: `Prepared a tracklist and metadata checklist for ${artist} - ${releaseTitle}.` }], structuredContent, _meta: { "openai/outputTemplate": metadataChecklistUri } };
+    }
+  );
+
+  registerAppTool(
+    server,
+    "create_concert_card",
+    {
+      title: "Create concert promotion card",
+      description:
+        "Use when an artist wants a concise, visual concert or live-event plan. It organizes only supplied venue, date, ticket, lineup, and promotion details. It does not confirm bookings, issue tickets, message venues, publish event listings, or spend money.",
+      inputSchema: {
+        artist: z.string().min(1).max(120), eventTitle: z.string().min(1).max(160), venue: z.string().max(160).optional(), city: z.string().max(120).optional(), eventDate: z.string().max(80).optional(), doorsTime: z.string().max(40).optional(), ticketUrl: z.string().url().optional(), ticketStatus: z.enum(["available", "coming-soon", "to-confirm"]).default("to-confirm"), supportActs: z.array(z.string().max(120)).max(10).default([]), promotionActions: z.array(z.string().max(500)).max(12).default([]), confirmBeforeUse: z.array(z.string().max(500)).max(12).default([]),
+      },
+      outputSchema: {
+        kind: z.literal("concert-card"), artist: z.string(), eventTitle: z.string(), venue: z.string().nullable(), city: z.string().nullable(), eventDate: z.string().nullable(), doorsTime: z.string().nullable(), ticketUrl: z.string().nullable(), ticketStatus: z.string(), supportActs: z.array(z.string()), promotionActions: z.array(z.string()), confirmBeforeUse: z.array(z.string()), safetyNote: z.string(),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false, idempotentHint: true },
+      _meta: { ui: { resourceUri: concertCardUri }, "openai/toolInvocation/invoking": "Building concert card", "openai/toolInvocation/invoked": "Concert card ready" },
+    },
+    async ({ artist, eventTitle, venue, city, eventDate, doorsTime, ticketUrl, ticketStatus, supportActs, promotionActions, confirmBeforeUse }) => {
+      const structuredContent = { kind: "concert-card" as const, artist, eventTitle, venue: venue ?? null, city: city ?? null, eventDate: eventDate ?? null, doorsTime: doorsTime ?? null, ticketUrl: ticketUrl ?? null, ticketStatus, supportActs, promotionActions, confirmBeforeUse, safetyNote: "This is a planning card based on supplied details. Verify booking, venue, schedule, ticket, lineup, rights, and event-listing information before sharing or publishing." };
+      return { content: [{ type: "text" as const, text: `Prepared a concert card for ${artist} - ${eventTitle}.` }], structuredContent, _meta: { "openai/outputTemplate": concertCardUri } };
+    }
+  );
+
+  registerAppTool(
+    server,
+    "create_press_pitch_draft",
+    {
+      title: "Create press pitch draft",
+      description:
+        "Use when an artist asks for a press, radio, blog, or curator email draft. It creates editable copy from supplied facts only. This tool never looks up contacts, sends messages, saves an email, or submits a pitch.",
+      inputSchema: {
+        artist: z.string().min(1).max(120), releaseTitle: z.string().max(160).optional(), recipientType: z.enum(["press", "radio", "blog", "playlist-curator", "partner", "other"]), language: z.string().min(1).max(80), recipientName: z.string().max(160).optional(), subject: z.string().min(1).max(300), body: z.string().min(1).max(6_000), suggestedFollowUp: z.string().max(1_000).optional(), confirmBeforeUse: z.array(z.string().max(500)).max(12).default([]),
+      },
+      outputSchema: {
+        kind: z.literal("press-pitch"), artist: z.string(), releaseTitle: z.string().nullable(), recipientType: z.string(), language: z.string(), recipientName: z.string().nullable(), subject: z.string(), body: z.string(), suggestedFollowUp: z.string().nullable(), confirmBeforeUse: z.array(z.string()), safetyNote: z.string(),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false, idempotentHint: true },
+      _meta: { ui: { resourceUri: pressPitchUri }, "openai/toolInvocation/invoking": "Drafting press pitch", "openai/toolInvocation/invoked": "Press pitch draft ready" },
+    },
+    async ({ artist, releaseTitle, recipientType, language, recipientName, subject, body, suggestedFollowUp, confirmBeforeUse }) => {
+      const structuredContent = { kind: "press-pitch" as const, artist, releaseTitle: releaseTitle ?? null, recipientType, language, recipientName: recipientName ?? null, subject, body, suggestedFollowUp: suggestedFollowUp ?? null, confirmBeforeUse, safetyNote: "This is an editable draft only. Confirm the recipient, factual claims, rights, attachments, links, and permission before copying it into an email client. No email has been sent." };
+      return { content: [{ type: "text" as const, text: `Prepared an editable ${recipientType} pitch draft for ${artist}. No email was sent.` }], structuredContent, _meta: { "openai/outputTemplate": pressPitchUri } };
+    }
+  );
+
+  registerAppTool(
+    server,
+    "create_content_pack_selection",
+    {
+      title: "Create content pack selection",
+      description:
+        "Use when an artist wants to choose which release-content drafts to create next. It creates a draft selection list only; it does not generate files, charge money, place an order, or save the selection.",
+      inputSchema: {
+        artist: z.string().min(1).max(120), releaseTitle: z.string().max(160).optional(), language: z.string().min(1).max(80), selectedItems: z.array(z.enum(["short-bio", "long-bio", "release-description", "editorial-pitch", "press-release", "press-email", "social-captions", "short-video-ideas", "image-briefs", "youtube-description"])).min(1).max(10), notes: z.string().max(2_000).optional(), confirmBeforeUse: z.array(z.string().max(500)).max(12).default([]),
+      },
+      outputSchema: {
+        kind: z.literal("content-selector"), artist: z.string(), releaseTitle: z.string().nullable(), language: z.string(), selectedItems: z.array(z.string()), notes: z.string().nullable(), confirmBeforeUse: z.array(z.string()), safetyNote: z.string(),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false, idempotentHint: true },
+      _meta: { ui: { resourceUri: contentSelectorUri }, "openai/toolInvocation/invoking": "Preparing content selection", "openai/toolInvocation/invoked": "Content selection ready" },
+    },
+    async ({ artist, releaseTitle, language, selectedItems, notes, confirmBeforeUse }) => {
+      const structuredContent = { kind: "content-selector" as const, artist, releaseTitle: releaseTitle ?? null, language, selectedItems, notes: notes ?? null, confirmBeforeUse, safetyNote: "This is a draft selection only. It does not create assets, buy anything, save the selection, or publish content." };
+      return { content: [{ type: "text" as const, text: `Prepared a content-pack selection for ${artist} with ${selectedItems.length} requested draft types.` }], structuredContent, _meta: { "openai/outputTemplate": contentSelectorUri } };
+    }
+  );
+
+  registerAppTool(
+    server,
+    "create_release_operations_snapshot",
+    {
+      title: "Create release operations snapshot",
+      description:
+        "Use when an artist wants a visual task board and/or a simple performance snapshot from numbers they supply. It never creates or stores tasks, retrieves analytics, accesses artist accounts, or claims that supplied metrics are verified.",
+      inputSchema: {
+        artist: z.string().min(1).max(120), releaseTitle: z.string().max(160).optional(), tasks: z.array(releaseTaskSchema).max(40).default([]), metrics: z.array(releaseMetricSchema).max(12).default([]), reportingPeriod: z.string().max(160).optional(), confirmBeforeUse: z.array(z.string().max(500)).max(16).default([]),
+      },
+      outputSchema: {
+        kind: z.literal("operations-snapshot"), artist: z.string(), releaseTitle: z.string().nullable(), tasks: z.array(releaseTaskSchema), metrics: z.array(releaseMetricSchema), reportingPeriod: z.string().nullable(), confirmBeforeUse: z.array(z.string()), safetyNote: z.string(),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false, idempotentHint: true },
+      _meta: { ui: { resourceUri: operationsBoardUri }, "openai/toolInvocation/invoking": "Building operations snapshot", "openai/toolInvocation/invoked": "Operations snapshot ready" },
+    },
+    async ({ artist, releaseTitle, tasks, metrics, reportingPeriod, confirmBeforeUse }) => {
+      const structuredContent = { kind: "operations-snapshot" as const, artist, releaseTitle: releaseTitle ?? null, tasks, metrics, reportingPeriod: reportingPeriod ?? null, confirmBeforeUse, safetyNote: "Tasks and metrics are a supplied-data snapshot only. Nothing was saved, assigned, retrieved from an account, or independently verified." };
+      return { content: [{ type: "text" as const, text: `Prepared an operations snapshot for ${artist} with ${tasks.length} tasks and ${metrics.length} supplied metrics.` }], structuredContent, _meta: { "openai/outputTemplate": operationsBoardUri } };
+    }
+  );
 
   registerAppTool(
     server,
@@ -823,6 +1040,18 @@ createServer(async (req, res) => {
   if (req.method === "GET" && url.pathname === "/support") {
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     res.end(readFileSync(path.join(rootDir, "public", "support.html"), "utf8"));
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/next-widgets-preview") {
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    res.end(readFileSync(path.join(rootDir, "public", "operations-preview.html"), "utf8"));
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/next-widgets-preview/artist-operations.html") {
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    res.end(readFileSync(path.join(rootDir, "public", "artist-operations.html"), "utf8"));
     return;
   }
 
