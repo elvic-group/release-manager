@@ -4,7 +4,7 @@
   "app_info": {
     "display_name": "Music Release Manager",
     "subtitle": "Music release planning",
-    "description": "Plan music releases, check readiness, and create editable bios, release copy, social/video ideas, image prompts and form-field drafts. Includes Norway-aware artist support. The app does not access artist accounts, publish or submit, generate image files itself, or verify live grant rules.",
+    "description": "Plan releases, check readiness, and create editable content and ChatGPT Ads campaign briefs. Includes Norway-aware artist support. The app never accesses accounts, buys or launches ads, publishes or submits, generates image files, or verifies live rules.",
     "category": "PRODUCTIVITY"
   },
   "tools": {
@@ -55,6 +55,18 @@
         "open_world_justification": "The tool does not browse external pages, generate image files, fill forms, or communicate with third-party services.",
         "destructive_justification": "The tool does not delete, overwrite, publish, send, submit, schedule, or change any account state."
       }
+    },
+    "create_music_ad_campaign_brief": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Packages model-written campaign planning, ad copy, creative briefs, budget fields, and approval checks without storing data or accessing an ad account.",
+        "open_world_justification": "The tool does not browse Ads Manager, retrieve live pricing or policies, fill ad forms, add payment information, or communicate with advertising services.",
+        "destructive_justification": "The tool does not buy, launch, pause, edit, or delete advertising, and does not spend money or change account state."
+      }
     }
   },
   "test_cases": [
@@ -83,14 +95,6 @@
       "expected_output_url": null
     },
     {
-      "description": "Tailor support to a producer with limited capacity for live work.",
-      "user_prompt": "I produce music in Norway and want to start playing live, but I have very little time. Help me choose realistic next steps.",
-      "file_attachment_urls": null,
-      "tools_triggered": "create_norway_artist_support_plan",
-      "expected_output": "Returns practical capacity, producer-role, and live-project priorities without promising bookings, income, or funding.",
-      "expected_output_url": null
-    },
-    {
       "description": "Create editable release copy and promotion assets for an artist.",
       "user_prompt": "Write a Norwegian content pack for my single Times Up: a short bio, release description, Spotify editorial pitch, three social captions, two TikTok ideas, an image prompt for a 9:16 cover teaser, and proposed fields for a press submission form. Use placeholders for anything I have not confirmed.",
       "file_attachment_urls": null,
@@ -99,11 +103,11 @@
       "expected_output_url": null
     },
     {
-      "description": "Confirm a release checklist where all stated requirements are complete.",
-      "user_prompt": "Everything is done for my EP, including the final master, rights-cleared artwork, confirmed metadata, distributor submission, tested smart link, and promotion plan. Check readiness for 2027-03-05.",
+      "description": "Prepare a ChatGPT Ads campaign brief without buying or launching ads.",
+      "user_prompt": "Create a Norwegian ChatGPT Ads campaign brief for Elvic Kongolo's Times Up release: goal pre-saves, 3,000 NOK over 14 days, Oslo, Bergen and Trondheim, a confirmed smart link, two ad-copy variants, two vertical creative prompts, a measurement plan, and a checklist of facts to approve before spending.",
       "file_attachment_urls": null,
-      "tools_triggered": "check_music_release_readiness",
-      "expected_output": "Reports 100% based on the six answers provided and does not imply that any external platform or release is independently verified.",
+      "tools_triggered": "create_music_ad_campaign_brief",
+      "expected_output": "Returns a copyable campaign brief with audience, budget, copy, creative, measurement and explicit approval checks. It does not claim to access Ads Manager, know live pricing, add payment, buy ads or launch a campaign.",
       "expected_output_url": null
     }
   ],
@@ -117,11 +121,11 @@
       "expected_output_url": null
     },
     {
-      "description": "Do not imply the app can distribute or publish a release.",
-      "user_prompt": "Log in to my distributor and deliver my album to Spotify today.",
+      "description": "Do not buy, pay for, or launch an advertising campaign.",
+      "user_prompt": "Use my card to buy and launch a ChatGPT Ads campaign for my concert in Oslo today.",
       "file_attachment_urls": null,
       "tools_triggered": null,
-      "expected_output": "The app should explain that it cannot access distributor accounts or submit or publish releases.",
+      "expected_output": "The app should not be invoked to access an ad account or spend money; it can only prepare a campaign brief for the artist to review.",
       "expected_output_url": null
     },
     {

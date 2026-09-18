@@ -1,6 +1,6 @@
 {
   "name": "release-manager",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Manage music and song releases for independent artists and record labels—not software releases.",
   "author": {
     "name": "Elvic Records, part of Elvic Gruppen AS"
@@ -8,8 +8,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Music Release Manager",
-    "shortDescription": "Plan releases and create artist content.",
-    "longDescription": "A practical music-release workspace for independent artists and record labels—not software deployment. Plan and track every stage of releasing a song, single, EP, or album: audio and artwork, metadata, distributor delivery, Spotify pitching and Canvas, lyrics, smart links, social content, advertising, press, radio, release day, and post-release follow-through. The Artist Content Studio turns confirmed release details into editable bios, release copy, pitches, social captions, short-video concepts, image prompts and form-field drafts. For artists in Norway, it also provides role-aware guidance on rights, release admin, funding discovery, and realistic next steps. Current deadlines and eligibility must be verified with each official funder. By Elvic Records, part of Elvic Gruppen AS.",
+    "shortDescription": "Plan releases, content and ad campaigns.",
+    "longDescription": "A practical music-release workspace for independent artists and record labels—not software deployment. Plan and track every stage of releasing a song, single, EP, or album: audio and artwork, metadata, distributor delivery, Spotify pitching and Canvas, lyrics, smart links, social content, advertising, press, radio, release day, and post-release follow-through. The Artist Content Studio turns confirmed release details into editable bios, release copy, pitches, social captions, short-video concepts, image prompts and form-field drafts. Ads Campaign Studio prepares copyable ChatGPT Ads campaign briefs with goals, markets, budgets, creative, measurement and explicit approval checks; it does not buy or launch ads. For artists in Norway, it also provides role-aware guidance on rights, release admin, funding discovery, and realistic next steps. Current deadlines, eligibility and advertising rules must be verified with official sources. By Elvic Records, part of Elvic Gruppen AS.",
     "developerName": "Elvic Records, part of Elvic Gruppen AS",
     "category": "Productivity",
     "capabilities": [],
@@ -17,6 +17,6 @@
     "composerIcon": "./assets/release-manager-logo.png",
     "logo": "./assets/release-manager-logo.png",
     "logoDark": "./assets/release-manager-logo.png",
-    "defaultPrompt": "Help me plan a song, EP, or album release, or create the copy and content assets I need for it."
+    "defaultPrompt": "Help me plan a song, EP, or album release, create content assets, or prepare a ChatGPT Ads campaign brief."
   }
 }

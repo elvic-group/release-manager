@@ -97,7 +97,7 @@
       function render() {
         if (!output) return;
         byId("resources").hidden = output.kind !== "norway-support-plan";
-        byId("contentPack").hidden = output.kind !== "artist-content-pack";
+        byId("contentPack").hidden = !["artist-content-pack", "ad-campaign-brief"].includes(output.kind);
 
         if (output.kind === "artist-content-pack") {
           const norwegian = /norwegian|norsk|bokm[aå]l|nynorsk/i.test(output.language || "");
@@ -132,6 +132,76 @@
             ${forms ? `<section class="content-section"><h2>${norwegian ? "Skjemafelt" : "Form fields"}</h2>${forms}</section>` : ""}
             ${confirmations ? `<section class="content-section confirm"><h2>${norwegian ? "Bekreft før bruk" : "Confirm before use"}</h2><ul>${confirmations}</ul></section>` : ""}`;
           byId("note").textContent = output.safetyNote || "Review factual claims, rights, links and permissions before use. Nothing has been submitted.";
+          return;
+        }
+
+        if (output.kind === "ad-campaign-brief") {
+          const norwegian = /norwegian|norsk|bokm[aå]l|nynorsk/i.test(output.language || "");
+          const copyLabel = norwegian ? "Kopier" : "Copy";
+          const labels = norwegian ? {
+            overview: "Kampanjeoversikt", audience: "Målgruppe", budget: "Budsjett", adCopy: "Annonsetekst",
+            creatives: "Kreativ brief og prompt", measurement: "Måling", formFields: "Foreslåtte skjemafelt",
+            verify: "Kontroller i Ads Manager", approvals: "Godkjenn før kjøp eller lansering",
+            platform: "Plattform", promotion: "Promotering", objective: "Mål", markets: "Markeder", dates: "Datoer",
+            landingPage: "Destinasjon", primaryMetric: "Hovedmåling", secondaryMetrics: "Sekundære målinger",
+            tracking: "Sporing", total: "Totalt", period: "Periode", allocation: "Fordeling", text: "Tekst", avoid: "Unngå",
+          } : {
+            overview: "Campaign overview", audience: "Audience", budget: "Budget", adCopy: "Ad copy",
+            creatives: "Creative briefs and prompts", measurement: "Measurement", formFields: "Proposed form fields",
+            verify: "Verify in Ads Manager", approvals: "Approve before purchase or launch",
+            platform: "Platform", promotion: "Promotion", objective: "Objective", markets: "Markets", dates: "Dates",
+            landingPage: "Destination", primaryMetric: "Primary metric", secondaryMetrics: "Secondary metrics",
+            tracking: "Tracking", total: "Total", period: "Period", allocation: "Allocation", text: "Text", avoid: "Avoid",
+          };
+          const campaignField = (label, value) => value ? `<div class="field"><div class="copy-head"><strong class="field-label">${escapeHtml(label)}</strong><button class="copy-btn" type="button" data-copy="${escapeHtml(value)}" data-copy-label="${copyLabel}">${copyLabel}</button></div><p class="field-value">${escapeHtml(value)}</p></div>` : "";
+          const normalized = (value) => String(value || "").replace(/-/g, " ");
+          const dates = [output.startDate, output.endDate].filter(Boolean).join(" - ");
+          const overview = [
+            campaignField(labels.platform, "ChatGPT Ads"),
+            campaignField(labels.promotion, normalized(output.promotionType)),
+            campaignField(labels.objective, normalized(output.objective)),
+            campaignField(labels.markets, (output.markets || []).join(", ")),
+            campaignField(labels.dates, dates),
+            campaignField(labels.landingPage, output.landingPage),
+          ].join("");
+          const budget = output.budget ? [
+            campaignField(labels.total, `${output.budget.total} ${output.budget.currency}`),
+            campaignField(labels.period, output.budget.period),
+            campaignField(labels.allocation, output.budget.allocationNote),
+          ].join("") : "";
+          const adCopy = (output.adCopy || []).map((item) => {
+            const copyText = `${item.label}\n${item.headline}\n${item.primaryText}\nCTA: ${item.callToAction}`;
+            return `<div class="field"><div class="copy-head"><strong class="field-label">${escapeHtml(item.label)}</strong><button class="copy-btn" type="button" data-copy="${escapeHtml(copyText)}" data-copy-label="${copyLabel}">${copyLabel}</button></div><p class="field-value"><strong>${escapeHtml(item.headline)}</strong><br>${escapeHtml(item.primaryText)}<br><strong>CTA:</strong> ${escapeHtml(item.callToAction)}</p></div>`;
+          }).join("");
+          const creatives = (output.creativeBriefs || []).map((item) => {
+            const promptLabel = norwegian ? "Kopier prompt" : "Copy prompt";
+            return `<div class="field"><div class="copy-head"><strong class="field-label">${escapeHtml(item.format)} - ${escapeHtml(item.concept)}</strong><button class="copy-btn" type="button" data-copy="${escapeHtml(item.prompt)}" data-copy-label="${promptLabel}">${promptLabel}</button></div><p class="field-value">${escapeHtml(item.prompt)}${item.textOverlay ? `<br><strong>${labels.text}:</strong> ${escapeHtml(item.textOverlay)}` : ""}<br><strong>${labels.avoid}:</strong> ${escapeHtml((item.exclusions || []).join(" - "))}</p></div>`;
+          }).join("");
+          const measurement = output.measurement ? [
+            campaignField(labels.primaryMetric, output.measurement.primaryMetric),
+            campaignField(labels.secondaryMetrics, (output.measurement.secondaryMetrics || []).join(", ")),
+            campaignField(labels.tracking, output.measurement.trackingNotes),
+          ].join("") : "";
+          const formFields = renderFieldValues(output.formFields, copyLabel);
+          const verifyItems = (output.platformSettingsToVerify || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+          const approvalItems = (output.approvalChecklist || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+          byId("title").textContent = `${output.artist || "Artist"} - ${output.campaignName || (norwegian ? "Annonsekampanje" : "Ad campaign")}`;
+          byId("subtitle").textContent = ["ChatGPT Ads", output.language].filter(Boolean).join(" - ");
+          byId("score").hidden = true;
+          byId("lists").hidden = true;
+          byId("phases").hidden = true;
+          byId("actions").innerHTML = "";
+          byId("contentPack").innerHTML = `
+            <section class="content-section"><h2>${labels.overview}</h2>${overview}</section>
+            ${output.audience ? `<section class="content-section"><h2>${labels.audience}</h2>${campaignField(labels.audience, output.audience)}</section>` : ""}
+            ${budget ? `<section class="content-section"><h2>${labels.budget}</h2>${budget}</section>` : ""}
+            ${adCopy ? `<section class="content-section"><h2>${labels.adCopy}</h2>${adCopy}</section>` : ""}
+            ${creatives ? `<section class="content-section"><h2>${labels.creatives}</h2>${creatives}</section>` : ""}
+            ${measurement ? `<section class="content-section"><h2>${labels.measurement}</h2>${measurement}</section>` : ""}
+            ${formFields ? `<section class="content-section"><h2>${labels.formFields}</h2>${formFields}</section>` : ""}
+            ${verifyItems ? `<section class="content-section confirm"><h2>${labels.verify}</h2><ul>${verifyItems}</ul></section>` : ""}
+            ${approvalItems ? `<section class="content-section confirm"><h2>${labels.approvals}</h2><ul>${approvalItems}</ul></section>` : ""}`;
+          byId("note").textContent = output.safetyNote || "Review all campaign details and approve any spending or launch action separately.";
           return;
         }
 
@@ -197,7 +267,7 @@
         }
       });
       window.parent.postMessage({jsonrpc:"2.0",id:"initialize",method:"ui/initialize",params:{
-        appInfo:{name:"music-release-manager",version:"1.2.0"},
+        appInfo:{name:"music-release-manager",version:"1.3.0"},
         appCapabilities:{},protocolVersion:"2026-01-26"
       }}, "*");
       render();

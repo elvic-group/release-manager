@@ -45,9 +45,10 @@ Never turn a working inference into release metadata. Do not reuse an old releas
 ## 5. Advertising
 
 - Decide the funnel first: pre-save/site visits before release; streams, video views, followers, or retargeting after release. Do not activate a campaign merely because a draft is prepared.
+- For ChatGPT Ads, prepare a campaign brief before opening Ads Manager: objective, markets, artist-approved audience, confirmed destination, campaign period, creative, budget proposal, measurement plan, and an approval checklist. The brief is not an ad buy and must not be presented as a live Ads Manager configuration.
 - Review creative, destination, objective, countries, language, age, interests, placement, budget, date range, payment source, and estimated spend as separate fields.
 - Broad targeting may be useful for algorithmic learning, but location and audience choices control who can realistically see an ad. Ads do not reach every person in a selected country.
-- Spotify, Meta, YouTube, TikTok and other platforms have different creative and billing rules. Re-check the live UI before advising on exact specs or total cost.
+- ChatGPT Ads, Spotify, Meta, YouTube, TikTok and other platforms have different availability, creative, billing, targeting and measurement rules. Re-check the relevant official source and live UI before advising on exact specs, pricing, country access, or total cost.
 - Do not attach a payment method, approve a charge, or click an activation/publish button without express approval immediately beforehand.
 
 ## 6. Press and radio

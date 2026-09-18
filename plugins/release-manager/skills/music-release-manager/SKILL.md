@@ -25,6 +25,22 @@ Return the drafts as an `Artist Content Studio` pack with:
 
 If the host can generate images and the artist requests one, generate it only after confirming the intended format and that the artist has permission to use supplied reference material. Otherwise provide the prompt and an image brief, and say that it is not a finished image. When the artist explicitly asks to fill a form, use the built-in Codex Browser only on the artist's intended page, fill requested fields, and show the values before any final action. Do not submit, publish, send, schedule, upload, activate, or spend without separate explicit approval for that action.
 
+## Ads Campaign Studio
+
+When an artist or label wants to promote a release, concert, tour, music video, merchandise, or artist brand through ChatGPT Ads, prepare an `Ads Campaign Studio` brief before any account, payment, or campaign action. Establish only the relevant facts: what is being promoted, the campaign goal, release or event date, intended markets, confirmed landing page, usable rights-cleared assets, language, planning budget, and how success will be measured.
+
+Return a copyable campaign brief with:
+
+- campaign objective, campaign period, intended markets, and an artist-approved audience summary;
+- a planning budget and allocation note, clearly marked as a proposal rather than a purchase;
+- ad-copy variants with headline, primary text, and CTA;
+- visual briefs and prompts with format, overlay text, and exclusions;
+- proposed values for later Ads Manager form fields;
+- a measurement plan and a `Verify in Ads Manager` list for live availability, formats, targeting, cost, policy, and tracking settings;
+- an `Approve before purchase or launch` list covering rights, destination, budget, payment, and final campaign activation.
+
+Do not claim that ChatGPT Ads, Ads Manager, a particular format, targeting option, price, campaign result, or measurement integration is currently available unless checked with OpenAI's official source. The campaign brief does not access Ads Manager, retrieve account data, add payment information, buy ads, activate a campaign, or report live performance. When the artist explicitly asks to use the built-in Codex Browser to transfer approved draft values into their intended Ads Manager page, fill only the requested fields. Never log in, save payment details, accept an advertising contract, buy advertising, or launch, pause, or edit a campaign without separate explicit approval at that exact step.
+
 Do not describe this skill using software concepts such as code, tests, version numbers, deployment, staging, production rollout, release notes, or rollback.
 
 Start by identifying the music release and its stage. Do not carry title, date, UPC/ISRC, links, credits, territories, budgets, or platform status from one release to another. Begin with a blank release record unless the user supplies or identifies a release-specific workspace.

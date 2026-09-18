@@ -14,7 +14,7 @@ import { z } from "zod";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(dirname, "..");
-const widgetUri = "ui://music-release-manager/release-plan-v1.html";
+const widgetUri = "ui://music-release-manager/release-plan-v2.html";
 const widgetHtml = readFileSync(path.join(rootDir, "public", "widget.html"), "utf8");
 
 const phaseNames = [
@@ -249,6 +249,47 @@ const formFieldSchema = z.object({
   value: z.string().max(4_000),
 });
 
+const campaignPromotionTypeSchema = z.enum([
+  "release",
+  "concert",
+  "tour",
+  "music-video",
+  "merchandise",
+  "artist-awareness",
+]);
+const campaignObjectiveSchema = z.enum([
+  "awareness",
+  "pre-saves",
+  "streams",
+  "ticket-sales",
+  "website-visits",
+  "email-signups",
+]);
+const adCopySchema = z.object({
+  label: z.string().max(120),
+  headline: z.string().max(240),
+  primaryText: z.string().max(2_000),
+  callToAction: z.string().max(240),
+});
+const adCreativeBriefSchema = z.object({
+  format: z.string().max(120),
+  concept: z.string().max(1_000),
+  prompt: z.string().max(3_000),
+  textOverlay: z.string().max(500).optional(),
+  exclusions: z.array(z.string().max(300)).max(10),
+});
+const campaignBudgetSchema = z.object({
+  currency: z.string().min(3).max(12),
+  total: z.number().nonnegative().max(100_000_000),
+  period: z.string().max(160),
+  allocationNote: z.string().max(1_000).optional(),
+});
+const campaignMeasurementSchema = z.object({
+  primaryMetric: z.string().max(240),
+  secondaryMetrics: z.array(z.string().max(240)).max(8),
+  trackingNotes: z.string().max(2_000),
+});
+
 function startIndexForStage(stage: z.infer<typeof stageSchema>): number {
   return {
     idea: 0,
@@ -262,10 +303,10 @@ function startIndexForStage(stage: z.infer<typeof stageSchema>): number {
 
 function createMusicReleaseServer(): McpServer {
   const server = new McpServer(
-    { name: "music-release-manager", version: "1.2.0" },
+    { name: "music-release-manager", version: "1.3.0" },
     {
       instructions:
-        "This server is exclusively for music—not software. It provides music-release planning, readiness checks, Norway-aware artist support, and an Artist Content Studio. When an artist asks for release copy or promotional assets, use the conversation and user-provided files as source material, do not invent biographical or release facts, write the requested drafts in the artist's language, and call create_artist_content_pack to present them as copyable deliverables. Add clear placeholders or list facts to confirm where details are missing. Include image prompts and visual briefs; generate an actual image only if the host explicitly provides image-generation capability, and never claim a prompt is a finished image. If the artist explicitly asks you to fill fields, use only the available in-app browser and the artist's current, intended page; fill only requested fields and do not submit. Sending, publishing, scheduling, submitting, activating ads, or spending money always requires separate explicit approval. Never ask for passwords or authentication codes. Verify current funding deadlines and eligibility with the official funder; the Norway support tool does not browse or confirm them.",
+        "This server is exclusively for music—not software. It provides music-release planning, readiness checks, Norway-aware artist support, an Artist Content Studio, and ChatGPT Ads campaign briefs. When an artist asks for release copy, promotional assets, or an ad plan, use the conversation and user-provided files as source material, do not invent biographical, release, performance, rights, pricing, or platform facts, and write requested drafts in the artist's language. Use create_artist_content_pack for copyable release assets and create_music_ad_campaign_brief for copyable campaign planning. Put unknowns in the relevant confirmation list. The ad brief does not access Ads Manager, verify availability or policy, buy advertising, add payment, launch a campaign, or collect performance data. If the artist explicitly asks you to fill fields, use only the available in-app browser and the artist's current, intended page; fill only requested fields and do not submit. Sending, publishing, scheduling, submitting, activating ads, or spending money always requires separate explicit approval. Never ask for passwords or authentication codes. Verify current funding deadlines, eligibility, ad availability, costs, formats, targeting, and platform rules with the official source before acting.",
     }
   );
 
@@ -282,7 +323,7 @@ function createMusicReleaseServer(): McpServer {
             csp: { connectDomains: [], resourceDomains: [] },
           },
           "openai/widgetDescription":
-            "A compact music workspace showing release phases, readiness gaps, Norway-aware artist support, or copyable release content and form-field drafts.",
+            "A compact music workspace showing release phases, readiness gaps, Norway-aware artist support, copyable release content, or a copyable campaign brief that requires approval before ad spend or launch.",
         },
       },
     ],
@@ -364,6 +405,107 @@ function createMusicReleaseServer(): McpServer {
           {
             type: "text" as const,
             text: `Prepared a ${language} artist content pack for ${artist}${releaseTitle ? ` — ${releaseTitle}` : ""}. It contains ${socialCaptions.length} social captions, ${shortVideoIdeas.length} short-video ideas, ${imageConcepts.length} image concepts, and ${formFields.length} form-field drafts.`,
+          },
+        ],
+        structuredContent,
+        _meta: { "openai/outputTemplate": widgetUri },
+      };
+    }
+  );
+
+  registerAppTool(
+    server,
+    "create_music_ad_campaign_brief",
+    {
+      title: "Create music ad campaign brief",
+      description:
+        "Use after drafting a music campaign plan for a release, concert, tour, video, merchandise, or artist awareness. Packages only the model-written campaign brief into copyable audience, budget, ad-copy, creative, measurement, and approval fields. Use confirmed facts only and list unknowns in platformSettingsToVerify or approvalChecklist. This tool does not access Ads Manager or other ad accounts, browse, verify live ad rules or pricing, add payment details, buy ads, launch campaigns, or collect performance data.",
+      inputSchema: {
+        artist: z.string().min(1).max(120).describe("Artist or project name."),
+        campaignName: z.string().min(1).max(160).optional().describe("Optional campaign name."),
+        platform: z.literal("chatgpt-ads").describe("The intended advertising workspace."),
+        promotionType: campaignPromotionTypeSchema.describe("What the campaign promotes."),
+        objective: campaignObjectiveSchema.describe("The artist's intended campaign objective."),
+        language: z.string().min(1).max(80).describe("Language used for the campaign brief."),
+        markets: z.array(z.string().min(1).max(120)).max(20).default([]).describe("Countries, regions, or cities the artist wants to consider."),
+        startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Planned start date, if confirmed."),
+        endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Planned end date, if confirmed."),
+        landingPage: z.string().max(2_000).optional().describe("Confirmed destination URL or page description, if available."),
+        audience: z.string().max(2_000).optional().describe("Artist-approved audience summary; do not infer protected traits."),
+        budget: campaignBudgetSchema.optional().describe("Planning budget only; it is not a purchase instruction."),
+        adCopy: z.array(adCopySchema).max(8).default([]).describe("Only the model-written ad-copy variants requested by the artist."),
+        creativeBriefs: z.array(adCreativeBriefSchema).max(8).default([]).describe("Creative briefs or prompts, not generated ad images or video files."),
+        formFields: z.array(formFieldSchema).max(30).default([]).describe("Proposed field values for a later, artist-reviewed ad form."),
+        measurement: campaignMeasurementSchema.optional().describe("Planning metrics and tracking notes; no live analytics are retrieved."),
+        platformSettingsToVerify: z.array(z.string().max(500)).max(20).default([]).describe("Live availability, format, policy, pricing, audience, or measurement settings the artist must verify in Ads Manager."),
+        approvalChecklist: z.array(z.string().max(500)).max(20).default([]).describe("Facts, rights, budget, payment, landing page, and launch approvals required before any external action."),
+      },
+      outputSchema: {
+        kind: z.literal("ad-campaign-brief"),
+        artist: z.string(),
+        campaignName: z.string().nullable(),
+        platform: z.literal("chatgpt-ads"),
+        promotionType: campaignPromotionTypeSchema,
+        objective: campaignObjectiveSchema,
+        language: z.string(),
+        markets: z.array(z.string()),
+        startDate: z.string().nullable(),
+        endDate: z.string().nullable(),
+        landingPage: z.string().nullable(),
+        audience: z.string().nullable(),
+        budget: campaignBudgetSchema.nullable(),
+        adCopy: z.array(adCopySchema),
+        creativeBriefs: z.array(adCreativeBriefSchema),
+        formFields: z.array(formFieldSchema),
+        measurement: campaignMeasurementSchema.nullable(),
+        platformSettingsToVerify: z.array(z.string()),
+        approvalChecklist: z.array(z.string()),
+        safetyNote: z.string(),
+      },
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+      },
+      _meta: {
+        ui: { resourceUri: widgetUri },
+        "openai/toolInvocation/invoking": "Preparing music ad campaign brief",
+        "openai/toolInvocation/invoked": "Music ad campaign brief ready",
+      },
+    },
+    async ({ artist, campaignName, platform, promotionType, objective, language, markets, startDate, endDate, landingPage, audience, budget, adCopy, creativeBriefs, formFields, measurement, platformSettingsToVerify, approvalChecklist }) => {
+      const norwegian = /norwegian|norsk|bokm[aå]l|nynorsk/i.test(language);
+      const structuredContent = {
+        kind: "ad-campaign-brief" as const,
+        artist,
+        campaignName: campaignName ?? null,
+        platform,
+        promotionType,
+        objective,
+        language,
+        markets,
+        startDate: startDate ?? null,
+        endDate: endDate ?? null,
+        landingPage: landingPage ?? null,
+        audience: audience ?? null,
+        budget: budget ?? null,
+        adCopy,
+        creativeBriefs,
+        formFields,
+        measurement: measurement ?? null,
+        platformSettingsToVerify,
+        approvalChecklist,
+        safetyNote: norwegian
+          ? "Dette er kun et kampanjeutkast. Kontroller tilgjengelighet, annonseformat, målretting, kostnad, betalingskrav, destinasjon, rettigheter og gjeldende Ads Manager-regler før du bruker det. Ingen annonsekonto er åpnet, ingen betaling er lagt til, og ingen kampanje er kjøpt eller aktivert."
+          : "This is a planning brief only. Verify availability, ad format, targeting, cost, payment requirements, destination, rights, and current Ads Manager rules before use. No ad account was accessed, no payment was added, and no campaign was purchased or launched.",
+      };
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Prepared a ${language} ${platform} campaign brief for ${artist}${campaignName ? ` — ${campaignName}` : ""}. It contains ${adCopy.length} ad-copy variants, ${creativeBriefs.length} creative briefs, and ${approvalChecklist.length} approval checks. No ad account was accessed and no campaign was launched.`,
           },
         ],
         structuredContent,
