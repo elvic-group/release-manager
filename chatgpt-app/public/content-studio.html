@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Music Release Manager - Content Studio</title>
+    <style>
+      :root { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 14px; color: #f4f1eb; background: transparent; }
+      main { max-width: 760px; margin: auto; padding: 22px; border: 1px solid #4b4031; border-radius: 8px; background: #121210; box-shadow: 0 16px 45px #0004; }
+      .eyebrow { color: #e5b64d; font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+      h1 { margin: 8px 0 4px; font-size: 26px; line-height: 1.12; }
+      .sub, .note { margin: 0; color: #b8b1a7; font-size: 13px; line-height: 1.45; }
+      .summary { display: flex; flex-wrap: wrap; gap: 7px; margin: 16px 0 18px; }
+      .chip { padding: 5px 8px; border: 1px solid #3c3934; border-radius: 999px; color: #d9d2c6; background: #1c1b19; font-size: 11px; }
+      .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .section { padding: 14px; border: 1px solid #302e2a; border-radius: 7px; background: #191816; }
+      .section.wide { grid-column: 1 / -1; }
+      h2 { margin: 0 0 10px; color: #e5b64d; font-size: 13px; }
+      .entry { margin-top: 10px; padding-top: 10px; border-top: 1px solid #302e2a; }
+      .entry:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+      .head { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
+      .label { color: #faf7f1; font-size: 12px; font-weight: 750; }
+      .meta { color: #a9a198; font-size: 11px; }
+      p { margin: 5px 0 0; color: #ded8cf; font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
+      .copy { flex: 0 0 auto; padding: 5px 8px; border: 1px solid #74602f; border-radius: 4px; color: #f6d880; background: #262116; font: inherit; font-size: 11px; cursor: pointer; }
+      .copy:hover { background: #3b3017; }
+      .copy:focus-visible { outline: 2px solid #f6d880; outline-offset: 2px; }
+      ul { margin: 0; padding-left: 18px; color: #d8d2c8; font-size: 13px; line-height: 1.5; }
+      .confirm { border-left: 3px solid #cc8c53; }
+      .empty { color: #a9a198; font-size: 13px; }
+      [hidden] { display: none !important; }
+      @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">Artist Content Studio</div>
+      <h1 id="title">Content workspace</h1>
+      <p class="sub" id="subtitle">Waiting for artist content</p>
+      <div class="summary" id="summary"></div>
+      <div class="grid" id="workspace"></div>
+      <p class="note" id="note">Drafts need artist review before use.</p>
+    </main>
+    <script type="module">
+      let output = window.openai?.toolOutput ?? null;
+      const byId = (id) => document.getElementById(id);
+      const escapeHtml = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
+      const norwegian = (language) => /norwegian|norsk|bokm[aå]l|nynorsk/i.test(language || "");
+      const labels = (isNorwegian) => isNorwegian ? {
+        copy: "Kopier", copied: "Kopiert", text: "Tekst", social: "Sosiale medier", video: "Kortvideoer", images: "Bildebrief og prompt", forms: "Skjemafelt", confirm: "Bekreft for bruk", hook: "Startkrok", shots: "Klipp", cta: "Oppfordring", avoid: "Unnga", overlay: "Tekst",
+      } : {
+        copy: "Copy", copied: "Copied", text: "Copy", social: "Social captions", video: "Short videos", images: "Image briefs and prompts", forms: "Form fields", confirm: "Confirm before use", hook: "Hook", shots: "Shots", cta: "CTA", avoid: "Avoid", overlay: "Text",
+      };
+      const fieldLabels = {
+        shortBio: "Short bio", longBio: "Long bio", releaseDescription: "Release description", editorialPitch: "Editorial pitch", pressRelease: "Press release", pressEmailSubject: "Press email subject", pressEmailBody: "Press email body", youtubeDescription: "YouTube description",
+      };
+      const norwegianFieldLabels = {
+        shortBio: "Kort artistbio", longBio: "Lang artistbio", releaseDescription: "Utgivelsesbeskrivelse", editorialPitch: "Redaksjonell pitch", pressRelease: "Pressemelding", pressEmailSubject: "Emne for presse-e-post", pressEmailBody: "Presse-e-post", youtubeDescription: "YouTube-beskrivelse",
+      };
+      const copyButton = (value, text) => `<button class="copy" type="button" data-copy="${escapeHtml(value)}" data-copy-label="${escapeHtml(text)}">${escapeHtml(text)}</button>`;
+      const entry = (label, value, copyLabel, meta = "") => `<div class="entry"><div class="head"><div><div class="label">${escapeHtml(label)}</div>${meta ? `<div class="meta">${escapeHtml(meta)}</div>` : ""}</div>${copyButton(value, copyLabel)}</div><p>${escapeHtml(value)}</p></div>`;
+      const section = (title, body, wide = false, extraClass = "") => body ? `<section class="section ${wide ? "wide" : ""} ${extraClass}"><h2>${escapeHtml(title)}</h2>${body}</section>` : "";
+
+      function render() {
+        if (!output || output.kind !== "artist-content-pack") return;
+        const isNorwegian = norwegian(output.language);
+        const copy = labels(isNorwegian);
+        const contentLabels = isNorwegian ? norwegianFieldLabels : fieldLabels;
+        byId("title").textContent = `${output.artist || "Artist"} - ${output.releaseTitle || (isNorwegian ? "Innholdsarbeidsrom" : "Content workspace")}`;
+        byId("subtitle").textContent = [output.language, output.releaseDate].filter(Boolean).join(" - ");
+        const chips = [
+          ["Copy", Object.values(output.content || {}).filter(Boolean).length],
+          [isNorwegian ? "Sosiale" : "Social", (output.socialCaptions || []).length],
+          [isNorwegian ? "Video" : "Video", (output.shortVideoIdeas || []).length],
+          [isNorwegian ? "Bildebrief" : "Visual", (output.imageConcepts || []).length],
+        ].filter(([, count]) => count).map(([name, count]) => `<span class="chip">${escapeHtml(name)}: ${count}</span>`).join("");
+        byId("summary").innerHTML = chips || `<span class="chip">${isNorwegian ? "Utkast" : "Draft"}</span>`;
+        const copyFields = Object.entries(output.content || {}).filter(([, value]) => value).map(([key, value]) => entry(contentLabels[key] || key, value, copy.copy)).join("");
+        const social = (output.socialCaptions || []).map((item) => entry(item.platform, item.content, copy.copy)).join("");
+        const video = (output.shortVideoIdeas || []).map((item) => {
+          const value = `${copy.hook}: ${item.openingHook}\n${copy.shots}: ${(item.shotList || []).join(" - ")}\n${copy.cta}: ${item.callToAction}`;
+          return entry(item.concept, value, copy.copy, item.platform);
+        }).join("");
+        const images = (output.imageConcepts || []).map((item) => {
+          const value = `${item.prompt}${item.textOverlay ? `\n${copy.overlay}: ${item.textOverlay}` : ""}\n${copy.avoid}: ${(item.exclusions || []).join(" - ")}`;
+          return entry(item.concept || item.purpose, value, copy.copy, `${item.purpose} - ${item.format}`);
+        }).join("");
+        const forms = (output.formFields || []).map((item) => entry(item.label, item.value, copy.copy, item.form)).join("");
+        const confirmations = (output.confirmBeforeUse || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+        byId("workspace").innerHTML = [
+          section(copy.text, copyFields, true),
+          section(copy.social, social),
+          section(copy.video, video),
+          section(copy.images, images),
+          section(copy.forms, forms),
+          section(copy.confirm, confirmations ? `<ul>${confirmations}</ul>` : "", true, "confirm"),
+        ].join("") || `<p class="empty">${isNorwegian ? "Ingen innholdsfelt ble sendt med." : "No content fields were included."}</p>`;
+        byId("note").textContent = output.safetyNote || "Review facts, rights, links and permissions before use.";
+      }
+
+      document.addEventListener("click", async (event) => {
+        const button = event.target instanceof Element ? event.target.closest("[data-copy]") : null;
+        if (!button) return;
+        try {
+          await navigator.clipboard.writeText(button.dataset.copy || "");
+          button.textContent = norwegian(output?.language) ? "Kopiert" : "Copied";
+          window.setTimeout(() => { button.textContent = button.dataset.copyLabel || "Copy"; }, 1400);
+        } catch {
+          button.textContent = norwegian(output?.language) ? "Kopiering ikke tilgjengelig" : "Copy unavailable";
+        }
+      });
+
+      window.addEventListener("message", (event) => {
+        if (event.source !== window.parent) return;
+        const message = event.data;
+        if (message?.jsonrpc === "2.0" && message.method === "ui/notifications/tool-result") {
+          output = message.params?.structuredContent ?? output;
+          render();
+        }
+        if (message?.jsonrpc === "2.0" && message.id === "initialize" && message.result) {
+          window.parent.postMessage({ jsonrpc: "2.0", method: "ui/notifications/initialized", params: {} }, "*");
+        }
+      }, { passive: true });
+      window.parent.postMessage({ jsonrpc: "2.0", id: "initialize", method: "ui/initialize", params: { appInfo: { name: "music-release-manager", version: "1.4.0" }, appCapabilities: {}, protocolVersion: "2026-01-26" } }, "*");
+      render();
+    </script>
+  </body>
+</html>

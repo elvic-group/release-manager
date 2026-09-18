@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Music Release Manager Widget Gallery</title>
+    <style>
+      :root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #f6f3ec; background: #090909; }
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 28px; }
+      header, section { max-width: 920px; margin: 0 auto; }
+      .eyebrow { color: #f4b51c; font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+      h1 { margin: 8px 0; font-size: 32px; }
+      p { margin: 0; color: #bcb6aa; line-height: 1.5; }
+      section { margin-top: 24px; }
+      h2 { margin: 0 0 8px; font-size: 16px; }
+      iframe { display: block; width: 100%; min-height: 700px; margin-top: 10px; border: 0; background: #0e0e0e; }
+      @media (max-width: 620px) { body { padding: 14px; } h1 { font-size: 26px; } iframe { min-height: 920px; } }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="eyebrow">Music Release Manager</div>
+      <h1>ChatGPT-visninger</h1>
+      <p>Lokal visning med eksempeldata. Ingen konto, betaling, publisering eller annonsehandling er tilgjengelig her.</p>
+    </header>
+    <section><h2>Release Dashboard</h2><iframe id="dashboard" src="widget.html" title="Release Dashboard"></iframe></section>
+    <section><h2>Artist Content Studio</h2><iframe id="content" src="content-studio.html" title="Artist Content Studio"></iframe></section>
+    <section><h2>Campaign Studio</h2><iframe id="campaign" src="campaign-studio.html" title="Campaign Studio"></iframe></section>
+    <script>
+      const previews = {
+        dashboard: {
+          kind: "plan", artist: "Elvic Kongolo", title: "Times Up", releaseType: "single", releaseDate: "2027-01-22", currentStage: "promotion",
+          nextActions: ["Build a varied social calendar and review ad goals, audience, creative, budget and dates separately.", "Prepare a concise press kit, identify current contacts, personalize outreach and track follow-ups.", "Verify live links, publish only missing assets, monitor responses and capture learnings."],
+          phases: [
+            { number: 1, name: "Foundation", detail: "", status: "unverified" }, { number: 2, name: "Distribution", detail: "", status: "unverified" }, { number: 3, name: "Profiles", detail: "", status: "unverified" }, { number: 4, name: "Listener path", detail: "", status: "current" }, { number: 5, name: "Content", detail: "", status: "upcoming" }, { number: 6, name: "Press", detail: "", status: "upcoming" }, { number: 7, name: "Release day", detail: "", status: "upcoming" },
+          ],
+          safetyNote: "Planning only. No release has been published, submitted, sent, or charged.",
+        },
+        content: {
+          kind: "artist-content-pack", artist: "Elvic Kongolo", releaseTitle: "Times Up", releaseDate: "2027-01-22", language: "Norwegian",
+          content: { shortBio: "Elvic Kongolo lager melodidrevet musikk med et fokus på personlige fortellinger og tydelig energi.", releaseDescription: "Times Up er en ny singel fra Elvic Kongolo. Bekreft endelig sjanger, medvirkende og lenke før bruk.", editorialPitch: "En kort redaksjonell pitch basert på bekreftede fakta. Legg til artistens egen historie og lanseringsplan." },
+          socialCaptions: [{ platform: "Instagram", content: "Times Up kommer snart. Lagre datoen og følg med for mer." }, { platform: "TikTok", content: "Et lite glimt fra Times Up. Hva hører du først?" }],
+          shortVideoIdeas: [{ platform: "TikTok", concept: "First-listen reaction", openingHook: "Dette er det første sekundet av Times Up.", shotList: ["Nærbilde av avspilling", "Klipp til artist", "Tekst med releasedato"], callToAction: "Følg med for releasedato." }],
+          imageConcepts: [{ purpose: "Cover teaser", format: "9:16 vertical", prompt: "A rights-cleared gold and black record-inspired teaser with strong contrast and space for a title.", textOverlay: "Times Up", exclusions: ["unlicensed likeness", "unreadable typography"] }],
+          formFields: [{ form: "Press submission", label: "Short release description", value: "Times Up is a new single by Elvic Kongolo. Confirm final release details before submission." }],
+          confirmBeforeUse: ["Confirm final release date and link.", "Confirm all credits and visual rights."],
+          safetyNote: "Example drafts only. Confirm facts, rights, credits and links before use.",
+        },
+        campaign: {
+          kind: "ad-campaign-brief", artist: "Elvic Kongolo", campaignName: "Times Up pre-save", platform: "chatgpt-ads", promotionType: "release", objective: "pre-saves", language: "Norwegian", markets: ["Oslo", "Bergen", "Trondheim"], startDate: "2027-01-08", endDate: "2027-01-22", landingPage: "Confirmed Times Up pre-save link", audience: "Adult music listeners interested in new releases and live culture. Verify audience settings in Ads Manager.",
+          budget: { currency: "NOK", total: 3000, period: "14 days", allocationNote: "Use this as a test budget, then review results before increasing spend." },
+          adCopy: [{ label: "Version A", headline: "Times Up is coming", primaryText: "Pre-save Elvic Kongolo's new single Times Up and be ready on release day.", callToAction: "Pre-save now" }, { label: "Version B", headline: "A new chapter starts", primaryText: "Hear a preview of Times Up before the full release.", callToAction: "Listen to preview" }],
+          creativeBriefs: [{ format: "9:16 vertical", concept: "Gold record teaser", prompt: "A rights-cleared vertical teaser built around a black vinyl record, warm gold light and clear title space.", textOverlay: "Times Up - 22 January", exclusions: ["unlicensed artist likeness", "small unreadable text"] }],
+          formFields: [{ form: "Ads Manager", label: "Campaign name", value: "Times Up pre-save - Oslo Bergen Trondheim" }],
+          measurement: { primaryMetric: "Pre-saves", secondaryMetrics: ["Landing-page visits", "Link clicks"], trackingNotes: "Confirm Ads Manager measurement setup and the working landing-page destination before launch." },
+          platformSettingsToVerify: ["Confirm current Ads Manager availability in Norway.", "Confirm format, targeting and measurement options in the live interface."],
+          approvalChecklist: ["Artist approves the destination and all copy.", "Artist approves the budget and payment separately.", "Artist approves the final launch action separately."],
+          safetyNote: "Example campaign brief only. No account was accessed, no payment was added and no campaign was purchased or launched.",
+        },
+      };
+      const frames = Object.fromEntries(["dashboard", "content", "campaign"].map((id) => [id, document.getElementById(id)]));
+      window.addEventListener("message", (event) => {
+        const frame = Object.entries(frames).find(([, element]) => element.contentWindow === event.source);
+        if (!frame || event.data?.method !== "ui/initialize") return;
+        const [name] = frame;
+        event.source.postMessage({ jsonrpc: "2.0", id: "initialize", result: {} }, "*");
+        event.source.postMessage({ jsonrpc: "2.0", method: "ui/notifications/tool-result", params: { structuredContent: previews[name] } }, "*");
+      });
+    </script>
+  </body>
+</html>

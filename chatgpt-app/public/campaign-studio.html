@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Music Release Manager - Campaign Studio</title>
+    <style>
+      :root { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 14px; color: #f4f2ee; background: transparent; }
+      main { max-width: 760px; margin: auto; padding: 22px; border: 1px solid #42433f; border-radius: 8px; background: #101313; box-shadow: 0 16px 45px #0004; }
+      .eyebrow { color: #68d4bb; font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+      h1 { margin: 8px 0 4px; font-size: 26px; line-height: 1.12; }
+      .sub, .note { margin: 0; color: #afb8b2; font-size: 13px; line-height: 1.45; }
+      .flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 18px 0; }
+      .step { min-height: 62px; padding: 8px; border: 1px solid #34423e; border-radius: 6px; background: #15201d; color: #c7d1cb; font-size: 11px; line-height: 1.3; }
+      .step strong { display: block; margin-bottom: 3px; color: #77dfc6; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+      .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .section { padding: 14px; border: 1px solid #2e3431; border-radius: 7px; background: #171a19; }
+      .section.wide { grid-column: 1 / -1; }
+      h2 { margin: 0 0 10px; color: #8be4ce; font-size: 13px; }
+      .entry { margin-top: 10px; padding-top: 10px; border-top: 1px solid #2c322f; }
+      .entry:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+      .head { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
+      .label { color: #fbf8f3; font-size: 12px; font-weight: 750; }
+      .meta { margin-top: 2px; color: #9ca8a1; font-size: 11px; }
+      p { margin: 5px 0 0; color: #d7ded9; font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
+      .copy { flex: 0 0 auto; padding: 5px 8px; border: 1px solid #397565; border-radius: 4px; color: #a5f0db; background: #14342b; font: inherit; font-size: 11px; cursor: pointer; }
+      .copy:hover { background: #1c493b; }
+      .copy:focus-visible { outline: 2px solid #a5f0db; outline-offset: 2px; }
+      ul { margin: 0; padding-left: 18px; color: #d5ddd7; font-size: 13px; line-height: 1.5; }
+      .approval { border-left: 3px solid #d6a44b; }
+      .verify { border-left: 3px solid #6189be; }
+      [hidden] { display: none !important; }
+      @media (max-width: 560px) { .flow { grid-template-columns: 1fr; } .grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">Campaign Studio</div>
+      <h1 id="title">Campaign workspace</h1>
+      <p class="sub" id="subtitle">Waiting for campaign details</p>
+      <div class="flow" id="flow"></div>
+      <div class="grid" id="workspace"></div>
+      <p class="note" id="note">Planning only. No ads have been purchased or launched.</p>
+    </main>
+    <script type="module">
+      let output = window.openai?.toolOutput ?? null;
+      const byId = (id) => document.getElementById(id);
+      const escapeHtml = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
+      const norwegian = (language) => /norwegian|norsk|bokm[aå]l|nynorsk/i.test(language || "");
+      const labels = (isNorwegian) => isNorwegian ? {
+        copy: "Kopier", overview: "Kampanjeoversikt", audience: "Målgruppe", budget: "Budsjett", copySection: "Annonsetekst", creative: "Kreativ brief", measurement: "Mål og sporing", fields: "Foreslåtte skjemafelt", verify: "Kontroller i Ads Manager", approvals: "Godkjenn før kjøp eller lansering", objective: "Mål", markets: "Markeder", dates: "Datoer", destination: "Destinasjon", promotion: "Promotering", total: "Totalt", period: "Periode", allocation: "Fordeling", primary: "Hovedmåling", secondary: "Sekundære målinger", tracking: "Sporing", audienceStep: "Målgruppe", creativeStep: "Kreativ", budgetStep: "Budsjett", approvalStep: "Godkjenning", text: "Tekst", avoid: "Unngå",
+      } : {
+        copy: "Copy", overview: "Campaign overview", audience: "Audience", budget: "Budget", copySection: "Ad copy", creative: "Creative brief", measurement: "Goals and tracking", fields: "Proposed form fields", verify: "Verify in Ads Manager", approvals: "Approve before purchase or launch", objective: "Objective", markets: "Markets", dates: "Dates", destination: "Destination", promotion: "Promotion", total: "Total", period: "Period", allocation: "Allocation", primary: "Primary metric", secondary: "Secondary metrics", tracking: "Tracking", audienceStep: "Audience", creativeStep: "Creative", budgetStep: "Budget", approvalStep: "Approval", text: "Text", avoid: "Avoid",
+      };
+      const copyButton = (value, text) => `<button class="copy" type="button" data-copy="${escapeHtml(value)}" data-copy-label="${escapeHtml(text)}">${escapeHtml(text)}</button>`;
+      const entry = (label, value, copyLabel, meta = "") => value ? `<div class="entry"><div class="head"><div><div class="label">${escapeHtml(label)}</div>${meta ? `<div class="meta">${escapeHtml(meta)}</div>` : ""}</div>${copyButton(value, copyLabel)}</div><p>${escapeHtml(value)}</p></div>` : "";
+      const section = (title, body, wide = false, extraClass = "") => body ? `<section class="section ${wide ? "wide" : ""} ${extraClass}"><h2>${escapeHtml(title)}</h2>${body}</section>` : "";
+      const readable = (value) => String(value || "").replace(/-/g, " ");
+
+      function render() {
+        if (!output || output.kind !== "ad-campaign-brief") return;
+        const isNorwegian = norwegian(output.language);
+        const label = labels(isNorwegian);
+        const dates = [output.startDate, output.endDate].filter(Boolean).join(" - ");
+        byId("title").textContent = `${output.artist || "Artist"} - ${output.campaignName || (isNorwegian ? "Annonsekampanje" : "Ad campaign")}`;
+        byId("subtitle").textContent = ["ChatGPT Ads", output.language].filter(Boolean).join(" - ");
+        byId("flow").innerHTML = [
+          [label.objective, readable(output.objective)], [label.audienceStep, output.audience || (isNorwegian ? "Må avklares" : "To confirm")], [label.creativeStep, `${(output.adCopy || []).length + (output.creativeBriefs || []).length} ${isNorwegian ? "utkast" : "drafts"}`], [label.budgetStep, output.budget ? `${output.budget.total} ${output.budget.currency}` : (isNorwegian ? "Må avklares" : "To confirm")], [label.approvalStep, `${(output.approvalChecklist || []).length} ${isNorwegian ? "kontroller" : "checks"}`],
+        ].map(([step, value]) => `<div class="step"><strong>${escapeHtml(step)}</strong>${escapeHtml(value)}</div>`).join("");
+        const overview = [
+          entry(label.promotion, readable(output.promotionType), label.copy),
+          entry(label.objective, readable(output.objective), label.copy),
+          entry(label.markets, (output.markets || []).join(", "), label.copy),
+          entry(label.dates, dates, label.copy),
+          entry(label.destination, output.landingPage, label.copy),
+        ].join("");
+        const budget = output.budget ? [entry(label.total, `${output.budget.total} ${output.budget.currency}`, label.copy), entry(label.period, output.budget.period, label.copy), entry(label.allocation, output.budget.allocationNote, label.copy)].join("") : "";
+        const adCopy = (output.adCopy || []).map((item) => entry(item.headline, `${item.primaryText}\nCTA: ${item.callToAction}`, label.copy, item.label)).join("");
+        const creatives = (output.creativeBriefs || []).map((item) => entry(item.concept, `${item.prompt}${item.textOverlay ? `\n${label.text}: ${item.textOverlay}` : ""}\n${label.avoid}: ${(item.exclusions || []).join(" - ")}`, label.copy, item.format)).join("");
+        const measurement = output.measurement ? [entry(label.primary, output.measurement.primaryMetric, label.copy), entry(label.secondary, (output.measurement.secondaryMetrics || []).join(", "), label.copy), entry(label.tracking, output.measurement.trackingNotes, label.copy)].join("") : "";
+        const fields = (output.formFields || []).map((item) => entry(item.label, item.value, label.copy, item.form)).join("");
+        const verify = (output.platformSettingsToVerify || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+        const approvals = (output.approvalChecklist || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+        byId("workspace").innerHTML = [
+          section(label.overview, overview),
+          section(label.audience, entry(label.audience, output.audience, label.copy)),
+          section(label.budget, budget),
+          section(label.copySection, adCopy, true),
+          section(label.creative, creatives, true),
+          section(label.measurement, measurement),
+          section(label.fields, fields),
+          section(label.verify, verify ? `<ul>${verify}</ul>` : "", true, "verify"),
+          section(label.approvals, approvals ? `<ul>${approvals}</ul>` : "", true, "approval"),
+        ].join("");
+        byId("note").textContent = output.safetyNote || "Review and approve all external advertising actions separately.";
+      }
+
+      document.addEventListener("click", async (event) => {
+        const button = event.target instanceof Element ? event.target.closest("[data-copy]") : null;
+        if (!button) return;
+        try {
+          await navigator.clipboard.writeText(button.dataset.copy || "");
+          button.textContent = norwegian(output?.language) ? "Kopiert" : "Copied";
+          window.setTimeout(() => { button.textContent = button.dataset.copyLabel || "Copy"; }, 1400);
+        } catch {
+          button.textContent = norwegian(output?.language) ? "Kopiering ikke tilgjengelig" : "Copy unavailable";
+        }
+      });
+
+      window.addEventListener("message", (event) => {
+        if (event.source !== window.parent) return;
+        const message = event.data;
+        if (message?.jsonrpc === "2.0" && message.method === "ui/notifications/tool-result") {
+          output = message.params?.structuredContent ?? output;
+          render();
+        }
+        if (message?.jsonrpc === "2.0" && message.id === "initialize" && message.result) {
+          window.parent.postMessage({ jsonrpc: "2.0", method: "ui/notifications/initialized", params: {} }, "*");
+        }
+      }, { passive: true });
+      window.parent.postMessage({ jsonrpc: "2.0", id: "initialize", method: "ui/initialize", params: { appInfo: { name: "music-release-manager", version: "1.4.0" }, appCapabilities: {}, protocolVersion: "2026-01-26" } }, "*");
+      render();
+    </script>
+  </body>
+</html>

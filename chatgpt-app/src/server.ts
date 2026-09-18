@@ -14,8 +14,12 @@ import { z } from "zod";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(dirname, "..");
-const widgetUri = "ui://music-release-manager/release-plan-v2.html";
-const widgetHtml = readFileSync(path.join(rootDir, "public", "widget.html"), "utf8");
+const releaseDashboardUri = "ui://music-release-manager/release-dashboard-v1.html";
+const contentStudioUri = "ui://music-release-manager/content-studio-v1.html";
+const campaignStudioUri = "ui://music-release-manager/campaign-studio-v1.html";
+const releaseDashboardHtml = readFileSync(path.join(rootDir, "public", "widget.html"), "utf8");
+const contentStudioHtml = readFileSync(path.join(rootDir, "public", "content-studio.html"), "utf8");
+const campaignStudioHtml = readFileSync(path.join(rootDir, "public", "campaign-studio.html"), "utf8");
 
 const phaseNames = [
   "Foundation",
@@ -303,28 +307,51 @@ function startIndexForStage(stage: z.infer<typeof stageSchema>): number {
 
 function createMusicReleaseServer(): McpServer {
   const server = new McpServer(
-    { name: "music-release-manager", version: "1.3.0" },
+    { name: "music-release-manager", version: "1.4.0" },
     {
       instructions:
         "This server is exclusively for music—not software. It provides music-release planning, readiness checks, Norway-aware artist support, an Artist Content Studio, and ChatGPT Ads campaign briefs. When an artist asks for release copy, promotional assets, or an ad plan, use the conversation and user-provided files as source material, do not invent biographical, release, performance, rights, pricing, or platform facts, and write requested drafts in the artist's language. Use create_artist_content_pack for copyable release assets and create_music_ad_campaign_brief for copyable campaign planning. Put unknowns in the relevant confirmation list. The ad brief does not access Ads Manager, verify availability or policy, buy advertising, add payment, launch a campaign, or collect performance data. If the artist explicitly asks you to fill fields, use only the available in-app browser and the artist's current, intended page; fill only requested fields and do not submit. Sending, publishing, scheduling, submitting, activating ads, or spending money always requires separate explicit approval. Never ask for passwords or authentication codes. Verify current funding deadlines, eligibility, ad availability, costs, formats, targeting, and platform rules with the official source before acting.",
     }
   );
 
-  registerAppResource(server, "release-plan-widget", widgetUri, {}, async () => ({
+  const widgetMetadata = (description: string) => ({
+    ui: {
+      prefersBorder: true,
+      domain: "https://release-manager-production-bb96.up.railway.app",
+      csp: { connectDomains: [], resourceDomains: [] },
+    },
+    "openai/widgetDescription": description,
+  });
+
+  registerAppResource(server, "release-dashboard", releaseDashboardUri, {}, async () => ({
     contents: [
       {
-        uri: widgetUri,
+        uri: releaseDashboardUri,
         mimeType: RESOURCE_MIME_TYPE,
-        text: widgetHtml,
-        _meta: {
-          ui: {
-            prefersBorder: true,
-            domain: "https://release-manager-production-bb96.up.railway.app",
-            csp: { connectDomains: [], resourceDomains: [] },
-          },
-          "openai/widgetDescription":
-            "A compact music workspace showing release phases, readiness gaps, Norway-aware artist support, copyable release content, or a copyable campaign brief that requires approval before ad spend or launch.",
-        },
+        text: releaseDashboardHtml,
+        _meta: widgetMetadata("A release dashboard showing current phases, readiness gaps, next actions, or Norway-aware artist support."),
+      },
+    ],
+  }));
+
+  registerAppResource(server, "content-studio", contentStudioUri, {}, async () => ({
+    contents: [
+      {
+        uri: contentStudioUri,
+        mimeType: RESOURCE_MIME_TYPE,
+        text: contentStudioHtml,
+        _meta: widgetMetadata("A copyable artist content workspace for release copy, social captions, video concepts, image briefs, and form-field drafts."),
+      },
+    ],
+  }));
+
+  registerAppResource(server, "campaign-studio", campaignStudioUri, {}, async () => ({
+    contents: [
+      {
+        uri: campaignStudioUri,
+        mimeType: RESOURCE_MIME_TYPE,
+        text: campaignStudioHtml,
+        _meta: widgetMetadata("A campaign planning workspace with audience, budget, ad copy, creative briefs, measurement, and approval checks before any advertising action."),
       },
     ],
   }));
@@ -377,7 +404,7 @@ function createMusicReleaseServer(): McpServer {
         idempotentHint: true,
       },
       _meta: {
-        ui: { resourceUri: widgetUri },
+        ui: { resourceUri: contentStudioUri },
         "openai/toolInvocation/invoking": "Preparing artist content pack",
         "openai/toolInvocation/invoked": "Artist content pack ready",
       },
@@ -408,7 +435,7 @@ function createMusicReleaseServer(): McpServer {
           },
         ],
         structuredContent,
-        _meta: { "openai/outputTemplate": widgetUri },
+        _meta: { "openai/outputTemplate": contentStudioUri },
       };
     }
   );
@@ -469,7 +496,7 @@ function createMusicReleaseServer(): McpServer {
         idempotentHint: true,
       },
       _meta: {
-        ui: { resourceUri: widgetUri },
+        ui: { resourceUri: campaignStudioUri },
         "openai/toolInvocation/invoking": "Preparing music ad campaign brief",
         "openai/toolInvocation/invoked": "Music ad campaign brief ready",
       },
@@ -509,7 +536,7 @@ function createMusicReleaseServer(): McpServer {
           },
         ],
         structuredContent,
-        _meta: { "openai/outputTemplate": widgetUri },
+        _meta: { "openai/outputTemplate": campaignStudioUri },
       };
     }
   );
@@ -556,7 +583,7 @@ function createMusicReleaseServer(): McpServer {
         idempotentHint: true,
       },
       _meta: {
-        ui: { resourceUri: widgetUri },
+        ui: { resourceUri: releaseDashboardUri },
         "openai/toolInvocation/invoking": "Building the music release plan",
         "openai/toolInvocation/invoked": "Music release plan ready",
       },
@@ -590,7 +617,7 @@ function createMusicReleaseServer(): McpServer {
           },
         ],
         structuredContent,
-        _meta: { "openai/outputTemplate": widgetUri },
+        _meta: { "openai/outputTemplate": releaseDashboardUri },
       };
     }
   );
@@ -631,7 +658,7 @@ function createMusicReleaseServer(): McpServer {
         idempotentHint: true,
       },
       _meta: {
-        ui: { resourceUri: widgetUri },
+        ui: { resourceUri: releaseDashboardUri },
         "openai/toolInvocation/invoking": "Checking music release readiness",
         "openai/toolInvocation/invoked": "Readiness check complete",
       },
@@ -678,7 +705,7 @@ function createMusicReleaseServer(): McpServer {
           },
         ],
         structuredContent,
-        _meta: { "openai/outputTemplate": widgetUri },
+        _meta: { "openai/outputTemplate": releaseDashboardUri },
       };
     }
   );
@@ -755,7 +782,7 @@ function createMusicReleaseServer(): McpServer {
           },
         ],
         structuredContent,
-        _meta: { "openai/outputTemplate": widgetUri },
+        _meta: { "openai/outputTemplate": releaseDashboardUri },
       };
     }
   );

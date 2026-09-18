@@ -8,12 +8,16 @@
       :root { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
       * { box-sizing: border-box; }
       body { margin: 0; padding: 14px; color: #f8f5ed; background: transparent; }
-      main { max-width: 620px; margin: auto; padding: 22px; border-radius: 8px; background: linear-gradient(145deg, #151515, #080808); border: 1px solid #4e401f; box-shadow: 0 18px 50px #0004; }
+      main { max-width: 760px; margin: auto; padding: 22px; border-radius: 8px; background: #121211; border: 1px solid #4e401f; box-shadow: 0 18px 50px #0004; }
       .brand { color: #f4b51c; font-size: 12px; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
-      h1 { margin: 8px 0 4px; font-size: 25px; line-height: 1.15; }
+      h1 { margin: 8px 0 4px; font-size: 26px; line-height: 1.15; }
       .sub { margin: 0 0 18px; color: #bbb5aa; font-size: 14px; }
-      .score { display: grid; place-items: center; width: 76px; height: 76px; border-radius: 50%; border: 7px solid #f4b51c; font-size: 19px; font-weight: 900; }
+      .score { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; border: 6px solid #f4b51c; font-size: 18px; font-weight: 900; }
       .row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+      .dashboard-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 2px 0 16px; }
+      .summary-item { min-height: 60px; padding: 10px; border: 1px solid #34312a; border-radius: 6px; background: #1a1916; }
+      .summary-item strong { display: block; color: #f4d88d; font-size: 11px; letter-spacing: .07em; text-transform: uppercase; }
+      .summary-item span { display: block; margin-top: 5px; color: #f5f1e8; font-size: 13px; line-height: 1.3; }
       .actions { display: grid; gap: 8px; margin: 18px 0; }
       .action, .phase { padding: 11px 13px; border-radius: 6px; background: #ffffff0d; border: 1px solid #ffffff14; }
       .action { border-left: 3px solid #f4b51c; }
@@ -22,10 +26,11 @@
       .resources { margin-top: 18px; }
       .resources a { color: #f4d88d; }
       .resources li { margin: 6px 0; }
-      .phases { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 15px; }
-      .phase { padding: 8px 4px; text-align: center; color: #9b958b; font-size: 11px; }
+      .phases { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 15px; }
+      .phase { min-height: 76px; padding: 8px 5px; text-align: left; color: #9b958b; font-size: 11px; line-height: 1.3; }
       .phase.current { color: #151008; background: #f4b51c; font-weight: 800; }
-      .phase.complete { color: #f4d88d; border-color: #8b6a1f; }
+      .phase.unverified { color: #a7a096; border-color: #3a3730; }
+      .phase.upcoming { color: #d8d2c8; border-color: #514b40; }
       .lists { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
       h2 { margin: 0 0 8px; font-size: 14px; }
       ul { margin: 0; padding-left: 18px; color: #d8d2c8; font-size: 13px; }
@@ -45,7 +50,7 @@
       .field-meta { color: #aaa397; font-size: 11px; }
       .confirm { border-left: 3px solid #cf8d45; }
       [hidden] { display: none !important; }
-      @media (max-width: 480px) { .phases { grid-template-columns: repeat(4, 1fr); } .lists { grid-template-columns: 1fr; } }
+      @media (max-width: 560px) { .dashboard-summary, .lists { grid-template-columns: 1fr; } .phases { grid-template-columns: repeat(2, 1fr); } }
     </style>
   </head>
   <body>
@@ -53,11 +58,12 @@
       <div class="brand">Music Release Manager</div>
       <div class="row">
         <div>
-          <h1 id="title">Your music release plan</h1>
+          <h1 id="title">Your release dashboard</h1>
           <p class="sub" id="subtitle">Waiting for release details</p>
         </div>
         <div class="score" id="score" hidden>0%</div>
       </div>
+      <section class="dashboard-summary" id="dashboardSummary" hidden></section>
       <div class="actions" id="actions"></div>
       <section class="content-pack" id="contentPack" hidden></section>
       <div class="phases" id="phases"></div>
@@ -93,6 +99,11 @@
         .map(([key, value]) => `<div class="copy-field"><div class="copy-head"><strong>${escapeHtml(fieldLabels[language][key] || key)}</strong><button class="copy-btn" type="button" data-copy="${escapeHtml(value)}" data-copy-label="${escapeHtml(copyLabel)}">${escapeHtml(copyLabel)}</button></div><p>${escapeHtml(value)}</p></div>`)
         .join("");
       const renderFieldValues = (fields, copyLabel) => (fields || []).map((field) => `<div class="field"><div class="copy-head"><span class="field-meta">${escapeHtml(field.form)}</span><button class="copy-btn" type="button" data-copy="${escapeHtml(field.value)}" data-copy-label="${escapeHtml(copyLabel)}">${escapeHtml(copyLabel)}</button></div><strong class="field-label">${escapeHtml(field.label)}</strong><p class="field-value">${escapeHtml(field.value)}</p></div>`).join("");
+      const renderDashboardSummary = (items) => {
+        byId("dashboardSummary").hidden = false;
+        byId("dashboardSummary").innerHTML = items.map(([label, value]) => `<div class="summary-item"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value)}</span></div>`).join("");
+      };
+      const readable = (value) => String(value || "").replace(/-/g, " ");
 
       function render() {
         if (!output) return;
@@ -108,6 +119,7 @@
           byId("score").hidden = true;
           byId("lists").hidden = true;
           byId("phases").hidden = true;
+          byId("dashboardSummary").hidden = true;
           byId("actions").innerHTML = "";
           const social = (output.socialCaptions || []).map((item) => `<div class="copy-field"><div class="copy-head"><strong>${escapeHtml(item.platform)}</strong><button class="copy-btn" type="button" data-copy="${escapeHtml(item.content)}" data-copy-label="${copyLabel}">${copyLabel}</button></div><p>${escapeHtml(item.content)}</p></div>`).join("");
           const videos = (output.shortVideoIdeas || []).map((item) => {
@@ -190,6 +202,7 @@
           byId("score").hidden = true;
           byId("lists").hidden = true;
           byId("phases").hidden = true;
+          byId("dashboardSummary").hidden = true;
           byId("actions").innerHTML = "";
           byId("contentPack").innerHTML = `
             <section class="content-section"><h2>${labels.overview}</h2>${overview}</section>
@@ -211,6 +224,11 @@
           byId("score").hidden = true;
           byId("lists").hidden = true;
           byId("phases").hidden = true;
+          renderDashboardSummary([
+            ["Role", readable(output.artistRole)],
+            ["Project", readable(output.projectFocus)],
+            ["Focus", readable(output.mainObstacle)],
+          ]);
           byId("actions").innerHTML = (output.nextActions || []).map((item) => `<article class="action"><strong>${item.priority}. ${escapeHtml(item.title)}</strong><p>${escapeHtml(item.action)}</p><p><strong>Why:</strong> ${escapeHtml(item.why)}</p><p class="meta"><strong>Check with:</strong> ${escapeHtml(item.verifyWith)}</p></article>`).join("");
           byId("resourceList").innerHTML = (output.resources || []).map((item) => `<li><a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(item.name)}</a> — ${escapeHtml(item.use)}</li>`).join("");
           byId("note").textContent = output.currentInfoNote || "Check current deadlines, eligibility and costs with the official funder.";
@@ -225,13 +243,23 @@
           byId("score").hidden = true;
           byId("lists").hidden = true;
           byId("phases").hidden = false;
+          renderDashboardSummary([
+            ["Current stage", readable(output.currentStage)],
+            ["Release date", output.releaseDate],
+            ["Next move", output.nextActions?.length ? "Choose the first priority" : "Review release details"],
+          ]);
           byId("actions").innerHTML = (output.nextActions || []).map((item, index) => `<div class="action"><strong>${index + 1}.</strong> ${escapeHtml(item)}</div>`).join("");
-          byId("phases").innerHTML = (output.phases || []).map((phase) => `<div class="phase ${phase.status}">${phase.number}<br>${escapeHtml(phase.name)}</div>`).join("");
+          byId("phases").innerHTML = (output.phases || []).map((phase) => `<div class="phase ${phase.status}"><strong>${phase.number}. ${escapeHtml(phase.name)}</strong><br><span>${escapeHtml(phase.status === "current" ? "Current" : phase.status === "unverified" ? "Check status" : "Upcoming")}</span></div>`).join("");
         } else {
           byId("score").hidden = false;
           byId("score").textContent = `${output.score}%`;
           byId("phases").hidden = true;
           byId("lists").hidden = false;
+          renderDashboardSummary([
+            ["Release date", output.releaseDate],
+            ["Ready", `${(output.ready || []).length} items`],
+            ["Needs attention", `${(output.missing || []).length} items`],
+          ]);
           byId("actions").innerHTML = (output.nextActions || []).map((item, index) => `<div class="action"><strong>${index + 1}.</strong> ${escapeHtml(item)}</div>`).join("");
           byId("ready").innerHTML = list(output.ready);
           byId("missing").innerHTML = list(output.missing);
@@ -267,7 +295,7 @@
         }
       });
       window.parent.postMessage({jsonrpc:"2.0",id:"initialize",method:"ui/initialize",params:{
-        appInfo:{name:"music-release-manager",version:"1.3.0"},
+        appInfo:{name:"music-release-manager",version:"1.4.0"},
         appCapabilities:{},protocolVersion:"2026-01-26"
       }}, "*");
       render();
