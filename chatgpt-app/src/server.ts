@@ -826,6 +826,24 @@ createServer(async (req, res) => {
     return;
   }
 
+  if ((req.method === "GET" || req.method === "HEAD") && url.pathname === "/demo") {
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    res.end(req.method === "HEAD" ? undefined : readFileSync(path.join(rootDir, "public", "demo.html"), "utf8"));
+    return;
+  }
+
+  if ((req.method === "GET" || req.method === "HEAD") && url.pathname === "/demo/music-release-manager.mp4") {
+    res.writeHead(200, { "content-type": "video/mp4", "cache-control": "public, max-age=86400" });
+    res.end(req.method === "HEAD" ? undefined : readFileSync(path.join(rootDir, "public", "music-release-manager-demo.mp4")));
+    return;
+  }
+
+  if ((req.method === "GET" || req.method === "HEAD") && url.pathname === "/demo/music-release-manager-poster.jpg") {
+    res.writeHead(200, { "content-type": "image/jpeg", "cache-control": "public, max-age=86400" });
+    res.end(req.method === "HEAD" ? undefined : readFileSync(path.join(rootDir, "public", "music-release-manager-demo-poster.jpg")));
+    return;
+  }
+
   if (req.method === "GET" && url.pathname === "/.well-known/openai-apps-challenge") {
     const challenge = process.env.OPENAI_APPS_CHALLENGE;
     if (!challenge) {
