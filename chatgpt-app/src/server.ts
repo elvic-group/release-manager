@@ -17,12 +17,12 @@ const rootDir = path.resolve(dirname, "..");
 const releaseDashboardUri = "ui://music-release-manager/release-dashboard-v1.html";
 const contentStudioUri = "ui://music-release-manager/content-studio-v1.html";
 const campaignStudioUri = "ui://music-release-manager/campaign-studio-v1.html";
-const releaseCardUri = "ui://music-release-manager/release-card-v1.html";
-const metadataChecklistUri = "ui://music-release-manager/metadata-checklist-v1.html";
-const concertCardUri = "ui://music-release-manager/concert-card-v1.html";
-const pressPitchUri = "ui://music-release-manager/press-pitch-v1.html";
-const contentSelectorUri = "ui://music-release-manager/content-selector-v1.html";
-const operationsBoardUri = "ui://music-release-manager/operations-board-v1.html";
+const releaseCardUri = "ui://music-release-manager/release-card-v2.html";
+const metadataChecklistUri = "ui://music-release-manager/metadata-checklist-v2.html";
+const concertCardUri = "ui://music-release-manager/concert-card-v2.html";
+const pressPitchUri = "ui://music-release-manager/press-pitch-v2.html";
+const contentSelectorUri = "ui://music-release-manager/content-selector-v2.html";
+const operationsBoardUri = "ui://music-release-manager/operations-board-v2.html";
 const releaseDashboardHtml = readFileSync(path.join(rootDir, "public", "widget.html"), "utf8");
 const contentStudioHtml = readFileSync(path.join(rootDir, "public", "content-studio.html"), "utf8");
 const campaignStudioHtml = readFileSync(path.join(rootDir, "public", "campaign-studio.html"), "utf8");
@@ -341,7 +341,7 @@ function startIndexForStage(stage: z.infer<typeof stageSchema>): number {
 
 function createMusicReleaseServer(): McpServer {
   const server = new McpServer(
-    { name: "music-release-manager", version: "1.5.0" },
+    { name: "music-release-manager", version: "1.6.0" },
     {
       instructions:
         "This server is exclusively for music—not software. It provides music-release planning, readiness checks, Norway-aware artist support, an Artist Content Studio, and ChatGPT Ads campaign briefs. It can also create read-only artist operations widgets for release summaries, metadata checklists, concert details, press-pitch drafts, content-pack selections, and manually supplied tasks or metrics. When an artist asks for release copy, promotional assets, or an ad plan, use the conversation and user-provided files as source material, do not invent biographical, release, performance, rights, pricing, or platform facts, and write requested drafts in the artist's language. Use create_artist_content_pack for copyable release assets and create_music_ad_campaign_brief for copyable campaign planning. Put unknowns in the relevant confirmation list. The ad brief does not access Ads Manager, verify availability or policy, buy advertising, add payment, launch a campaign, or collect performance data. If the artist explicitly asks you to fill fields, use only the available in-app browser and the artist's current, intended page; fill only requested fields and do not submit. Sending, publishing, scheduling, submitting, activating ads, or spending money always requires separate explicit approval. Never ask for passwords or authentication codes. Verify current funding deadlines, eligibility, ad availability, costs, formats, targeting, and platform rules with the official source before acting.",

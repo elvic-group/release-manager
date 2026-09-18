@@ -31,14 +31,20 @@
       .track-number { display: grid; flex: 0 0 24px; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: #f0cb71; background: #2c2619; font-size: 11px; }
       .track { display: flex; flex: 1; gap: 9px; align-items: center; }
       .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-      button { padding: 6px 9px; border: 1px solid #756238; border-radius: 5px; color: #f2d888; background: #282114; font: inherit; font-size: 11px; cursor: pointer; }
+      button, input { padding: 6px 9px; border: 1px solid #756238; border-radius: 5px; color: #f2d888; background: #282114; font: inherit; font-size: 11px; }
+      input { width: 100%; }
+      button { cursor: pointer; }
       button:hover { background: #3b3017; }
       button:focus-visible { outline: 2px solid #f2d888; outline-offset: 2px; }
       .copy { flex: 0 0 auto; }
-      .message { min-height: 180px; padding: 13px; border: 1px solid #302e29; border-radius: 6px; color: #e5ded4; background: #151514; font-size: 13px; line-height: 1.55; white-space: pre-wrap; }
+      textarea { display: block; width: 100%; min-height: 180px; resize: vertical; padding: 13px; border: 1px solid #4a4438; border-radius: 6px; color: #e5ded4; background: #151514; font: inherit; font-size: 13px; line-height: 1.55; }
+      textarea:focus { border-color: #d5a83a; outline: 2px solid #d5a83a55; outline-offset: 1px; }
+      .message { min-height: 90px; padding: 13px; border: 1px solid #302e29; border-radius: 6px; color: #e5ded4; background: #151514; font-size: 13px; line-height: 1.55; white-space: pre-wrap; }
+      .field-label { display: block; margin-bottom: 7px; color: #aaa298; font-size: 11px; font-weight: 700; }
+      .helper { margin-top: 8px; color: #aaa298; font-size: 11px; line-height: 1.4; }
       .selection { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-      .selection-item { padding: 10px; border: 1px solid #3b3831; border-radius: 6px; background: #1b1a18; color: #d9d2c6; font-size: 12px; }
-      .selection-item.selected { border-color: #b98d2d; color: #f2d17e; background: #2b2417; }
+      .selection-item { width: 100%; padding: 10px; border: 1px solid #3b3831; border-radius: 6px; background: #1b1a18; color: #d9d2c6; font-size: 12px; text-align: left; }
+      .selection-item[aria-pressed="true"] { border-color: #b98d2d; color: #f2d17e; background: #2b2417; }
       .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
       .metric { padding: 10px; border: 1px solid #34312b; border-radius: 6px; background: #1a1917; }
       .metric strong { display: block; color: #faf6ee; font-size: 19px; }
@@ -68,7 +74,7 @@
       const escapeHtml = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
       const readable = (value) => String(value || "").replace(/-/g, " ");
       const tag = (value) => `<span class="tag ${escapeHtml(value)}">${escapeHtml(readable(value))}</span>`;
-      const copyButton = (value) => `<button class="copy" type="button" data-copy="${escapeHtml(value)}">Copy</button>`;
+      const copyButton = (value, label = "Copy") => `<button class="copy" type="button" data-copy="${escapeHtml(value)}" data-copy-label="${escapeHtml(label)}">${escapeHtml(label)}</button>`;
       const entry = (label, value, status) => `<div class="entry"><div><div class="label">${escapeHtml(label)}</div>${value ? `<div class="meta">${escapeHtml(value)}</div>` : ""}</div>${tag(status)}</div>`;
       const section = (title, content, wide = false, extra = "") => content ? `<section class="section ${wide ? "wide" : ""} ${extra}"><h2>${escapeHtml(title)}</h2>${content}</section>` : "";
       const confirmation = (items) => items?.length ? section("Confirm before use", `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`, true) : "";
@@ -94,18 +100,22 @@
         byId("view").innerHTML = `<div class="grid">${section("Event details", details)}${section("Support acts", (data.supportActs || []).length ? data.supportActs.map((name) => `<div class="entry"><div class="label">${escapeHtml(name)}</div></div>`).join("") : `<p class="empty">No support acts supplied.</p>`)}${section("Promotion next steps", (data.promotionActions || []).map((item) => `<div class="entry"><div class="label">${escapeHtml(item)}</div></div>`).join(""), true)}${confirmation(data.confirmBeforeUse)}</div>`;
       }
 
-      function renderPressPitch(data) {
+      function renderPressPitch(data, state = {}) {
         byId("title").textContent = `${data.artist} - press pitch draft`;
         byId("subtitle").textContent = [readable(data.recipientType), data.releaseTitle, data.recipientName].filter(Boolean).join(" · ");
+        const subject = state.subject ?? data.subject;
+        const body = state.body ?? data.body;
         const followUp = data.suggestedFollowUp ? `<div class="entry"><div><div class="label">Suggested follow-up</div><div class="meta">${escapeHtml(data.suggestedFollowUp)}</div></div>${copyButton(data.suggestedFollowUp)}</div>` : "";
-        byId("view").innerHTML = `<div class="grid">${section("Subject", `<div class="entry"><div class="label">${escapeHtml(data.subject)}</div>${copyButton(data.subject)}</div>`, true)}${section("Editable draft", `<div class="message">${escapeHtml(data.body)}</div><div class="actions">${copyButton(data.body)}</div>`, true)}${section("Follow-up", followUp, true)}${confirmation(data.confirmBeforeUse)}</div>`;
+        byId("view").innerHTML = `<div class="grid">${section("Subject", `<label class="field-label" for="pitch-subject">Edit subject</label><input id="pitch-subject" data-field="subject" value="${escapeHtml(subject)}" />`, true)}${section("Editable draft", `<label class="field-label" for="pitch-body">Edit draft text</label><textarea id="pitch-body" data-field="body">${escapeHtml(body)}</textarea><p class="helper">Session draft only. It is not saved or sent.</p><div class="actions"><button class="copy" type="button" data-copy="" data-copy-current="press-body" data-copy-label="Copy current draft">Copy current draft</button><button type="button" data-reset="press">Reset</button></div>`, true)}${section("Follow-up", followUp, true)}${confirmation(data.confirmBeforeUse)}</div>`;
       }
 
-      function renderContentSelector(data) {
+      function renderContentSelector(data, state = {}) {
         byId("title").textContent = `${data.artist} - content pack`;
         byId("subtitle").textContent = [data.releaseTitle, data.language].filter(Boolean).join(" · ");
         const labels = { "short-bio": "Short bio", "long-bio": "Long bio", "release-description": "Release description", "editorial-pitch": "Editorial pitch", "press-release": "Press release", "press-email": "Press email", "social-captions": "Social captions", "short-video-ideas": "Short video ideas", "image-briefs": "Image briefs", "youtube-description": "YouTube description" };
-        byId("view").innerHTML = `<div class="grid">${section("Selected draft outputs", `<div class="selection">${Object.entries(labels).map(([id, label]) => `<div class="selection-item ${data.selectedItems.includes(id) ? "selected" : ""}">${data.selectedItems.includes(id) ? "Selected · " : ""}${escapeHtml(label)}</div>`).join("")}</div>`, true)}${data.notes ? section("Artist notes", `<div class="message">${escapeHtml(data.notes)}</div>`, true) : ""}${confirmation(data.confirmBeforeUse)}</div>`;
+        const selectedItems = state.selectedItems ?? data.selectedItems;
+        const notes = state.notes ?? data.notes ?? "";
+        byId("view").innerHTML = `<div class="grid">${section("Select draft outputs", `<div class="selection">${Object.entries(labels).map(([id, label]) => `<button class="selection-item" type="button" data-select="${id}" aria-pressed="${selectedItems.includes(id)}">${selectedItems.includes(id) ? "Selected · " : ""}${escapeHtml(label)}</button>`).join("")}</div><p class="helper">Choose the drafts you want the artist content workspace to prepare.</p><div class="actions"><button type="button" data-reset="content-selection">Reset choices</button></div>`, true)}${section("Artist notes", `<label class="field-label" for="artist-notes">Notes for the content workspace</label><textarea id="artist-notes" data-field="notes" placeholder="Add artist-approved facts, tone or priorities...">${escapeHtml(notes)}</textarea><p class="helper">Session notes only. They are not saved or sent.</p>`, true)}${confirmation(data.confirmBeforeUse)}</div>`;
       }
 
       function renderOperations(data) {
@@ -119,23 +129,39 @@
         byId("view").innerHTML = `<div class="grid">${section("Release tasks", tasks || `<p class="empty">No tasks supplied.</p>`, true)}${metrics.length ? section("Supplied performance snapshot", `<div class="metrics">${metricCards}</div>${bars}`, true) : ""}${confirmation(data.confirmBeforeUse)}</div>`;
       }
 
+      const state = { press: {}, content: {} };
+      const outputKey = (data) => [data?.kind, data?.artist, data?.releaseTitle ?? ""].join("|");
+      const persistedState = window.openai?.widgetState;
+      if (persistedState?.key === outputKey(output)) {
+        state.press = persistedState.press ?? {};
+        state.content = persistedState.content ?? {};
+      }
+      const persistState = () => window.openai?.setWidgetState?.({ key: outputKey(output), press: state.press, content: state.content });
+      const resetState = (kind) => { if (kind === "content-selection") delete state.content.selectedItems; else state[kind] = {}; persistState(); render(); };
+      const activeState = (kind) => kind === "press-pitch" ? state.press : kind === "content-selector" ? state.content : {};
+
       function render() {
         if (!output) return;
         const handlers = { "release-card": renderReleaseCard, "metadata-checklist": renderMetadata, "concert-card": renderConcert, "press-pitch": renderPressPitch, "content-selector": renderContentSelector, "operations-snapshot": renderOperations };
         const handler = handlers[output.kind];
         if (!handler) return;
         byId("brand").textContent = output.kind.replace(/-/g, " ");
-        handler(output);
+        handler(output, activeState(output.kind));
         byId("note").textContent = output.safetyNote || byId("note").textContent;
       }
 
       document.addEventListener("click", async (event) => {
-        const button = event.target instanceof Element ? event.target.closest("[data-copy]") : null;
-        if (!button) return;
-        try { await navigator.clipboard.writeText(button.dataset.copy || ""); button.textContent = "Copied"; window.setTimeout(() => { button.textContent = "Copy"; }, 1200); } catch { button.textContent = "Copy unavailable"; }
+        const target = event.target instanceof Element ? event.target : null;
+        const button = target?.closest("[data-copy]");
+        if (button) { const copyValue = button.dataset.copyCurrent === "press-body" ? state.press.body ?? output?.body ?? "" : button.dataset.copy || ""; try { await navigator.clipboard.writeText(copyValue); button.textContent = "Copied"; window.setTimeout(() => { button.textContent = button.dataset.copyLabel || "Copy"; }, 1200); } catch { button.textContent = "Copy unavailable"; } return; }
+        const selector = target?.closest("[data-select]");
+        if (selector && output?.kind === "content-selector") { const id = selector.dataset.select; const selectedItems = new Set(state.content.selectedItems ?? output.selectedItems); if (selectedItems.has(id)) selectedItems.delete(id); else selectedItems.add(id); state.content.selectedItems = [...selectedItems]; persistState(); render(); return; }
+        const reset = target?.closest("[data-reset]");
+        if (reset) { resetState(reset.dataset.reset); }
       });
-      window.addEventListener("message", (event) => { if (event.source !== window.parent) return; const message = event.data; if (message?.jsonrpc === "2.0" && message.method === "ui/notifications/tool-result") { output = message.params?.structuredContent ?? output; render(); } if (message?.jsonrpc === "2.0" && message.id === "initialize" && message.result) window.parent.postMessage({ jsonrpc: "2.0", method: "ui/notifications/initialized", params: {} }, "*"); }, { passive: true });
-      window.parent.postMessage({ jsonrpc: "2.0", id: "initialize", method: "ui/initialize", params: { appInfo: { name: "music-release-manager", version: "1.5.0" }, appCapabilities: {}, protocolVersion: "2026-01-26" } }, "*");
+      document.addEventListener("input", (event) => { const field = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement ? event.target : null; if (!field) return; if (output?.kind === "press-pitch") state.press[field.dataset.field] = field.value; if (output?.kind === "content-selector") state.content[field.dataset.field] = field.value; persistState(); });
+      window.addEventListener("message", (event) => { if (event.source !== window.parent) return; const message = event.data; if (message?.jsonrpc === "2.0" && message.method === "ui/notifications/tool-result") { output = message.params?.structuredContent ?? output; state.press = {}; state.content = {}; if (window.openai?.widgetState?.key === outputKey(output)) { state.press = window.openai.widgetState.press ?? {}; state.content = window.openai.widgetState.content ?? {}; } render(); } if (message?.jsonrpc === "2.0" && message.id === "initialize" && message.result) window.parent.postMessage({ jsonrpc: "2.0", method: "ui/notifications/initialized", params: {} }, "*"); }, { passive: true });
+      window.parent.postMessage({ jsonrpc: "2.0", id: "initialize", method: "ui/initialize", params: { appInfo: { name: "music-release-manager", version: "1.6.0" }, appCapabilities: {}, protocolVersion: "2026-01-26" } }, "*");
       render();
     </script>
   </body>
