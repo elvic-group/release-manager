@@ -24,6 +24,12 @@ Start by identifying the music release and its stage. Do not carry title, date, 
 - Before a status review ends, give the three highest-priority next actions.
 - Check the tracker and platform state before outreach or publishing so nothing is duplicated.
 
+## Support for artists in Norway
+
+When an artist is based in Norway or asks about the Norwegian music system, use [references/norway-artist-guide.md](references/norway-artist-guide.md). Treat this as practical navigation, not legal, tax, benefits, or funding advice. Do not assume every artist has the same role, location, language, resources, or eligibility.
+
+For a new support request, first establish only the details needed to help: the artist's role, municipality or county, release/project and timing, team or organization where relevant, available capacity/budget if they want to share it, and their most urgent obstacle. Ask in one compact question when possible; do not require a full profile to answer a narrow question.
+
 ## Release workflow
 
 Use the phase that matches the release; do not repeat completed work.

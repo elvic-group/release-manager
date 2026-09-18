@@ -48,6 +48,169 @@ const stageSchema = z.enum([
 
 const releaseTypeSchema = z.enum(["single", "ep", "album"]);
 
+const artistRoleSchema = z.enum([
+  "performer",
+  "songwriter",
+  "producer",
+  "independent-artist",
+  "label-team",
+  "multi-role",
+]);
+const projectFocusSchema = z.enum(["recording", "release", "live", "export", "career"]);
+const obstacleSchema = z.enum([
+  "rights-metadata",
+  "funding",
+  "time-capacity",
+  "promotion-audience",
+  "financing",
+  "administration",
+  "other",
+]);
+
+type SupportAction = {
+  title: string;
+  action: string;
+  why: string;
+  verifyWith: string;
+};
+
+function actionForObstacle(obstacle: z.infer<typeof obstacleSchema>): SupportAction {
+  const actions: Record<z.infer<typeof obstacleSchema>, SupportAction> = {
+    "rights-metadata": {
+      title: "Lag en oversikt over verk, innspilling og eierskap",
+      action: "Skill mellom komposisjon, innspilling og master. Samle bidragsytere, avtaler, avtalte andeler og åpne spørsmål før registrering eller levering.",
+      why: "Uklare roller, krediteringer og rettigheter kan føre til feilregistrering eller forsinket levering.",
+      verifyWith: "Skriftlig bekreftelse fra bidragsyterne, relevante avtaler og gjeldende veiledning fra TONO, Gramo og distributøren.",
+    },
+    funding: {
+      title: "Sjekk støtteordninger mot prosjektet før du skriver søknad",
+      action: "Lag en kort prosjektbeskrivelse og kostnadsoversikt. Finn mulige ordninger, og kontroller krav, søker, kostnader og frist hos hver aktuell støttegiver.",
+      why: "Ordninger varierer med geografi, søkerform, aktivitet og kostnadstype, og regler og frister endres.",
+      verifyWith: "Støttegiverens gjeldende offisielle utlysning. Dette verktøyet har ikke sjekket frister eller kvalifikasjon live.",
+    },
+    "time-capacity": {
+      title: "Gjør neste uke gjennomførbar",
+      action: "Velg én nødvendig oppgave, sett av en kort arbeidsøkt og flytt resten til en senere liste. Vurder konkret hva en samarbeidspartner kan eie.",
+      why: "En mindre, tydelig arbeidsmengde er enklere å gjennomføre når artisten også håndterer administrasjon.",
+      verifyWith: "En oppgaveliste med ansvarlig, neste dato og dokumentasjon på fullføring.",
+    },
+    "promotion-audience": {
+      title: "Velg ett publikumsmål og én lyttervei",
+      action: "Bestem om innsatsen skal skape kjennskap, forhåndslagringer eller lytting. Velg få innholdsbiter artisten faktisk kan lage, og test lenken til utgivelsen.",
+      why: "En avgrenset plan gjør det mulig å lære av responsen uten å spre tid og budsjett på for mange kanaler.",
+      verifyWith: "Testet utgivelseslenke og en enkel logg over publisert innhold og respons. Ingen rekkevidde eller strømmer kan loves.",
+    },
+    financing: {
+      title: "Sett et tydelig kostnadstak",
+      action: "List kjente kostnader for produksjon, visuelt materiell, markedsføring og aktivitet. Skill tilbud fra estimater, sett et maksimalt beløp og prioriter tiltak som passer kapasiteten.",
+      why: "Det synliggjør økonomisk risiko før penger bindes eller annonser aktiveres.",
+      verifyWith: "Oppdaterte tilbud, prosjektbudsjett og skriftlig godkjenning fra den som bærer kostnaden.",
+    },
+    administration: {
+      title: "Samle prosjektstatus på ett sted",
+      action: "Opprett en oversikt med oppgave, ansvarlig, frist, status, kilde og bevis for ferdigstillelse.",
+      why: "En felles oversikt reduserer dobbeltarbeid og gjør det lettere å se hva som mangler.",
+      verifyWith: "Den løpende prosjektoversikten og opprinnelig kilde for hver frist eller status.",
+    },
+    other: {
+      title: "Bryt hindringen ned til ett kontrollerbart steg",
+      action: "Beskriv hva som stopper prosjektet, hva som haster, hvem som kan avklare det, og den minste handlingen som kan tas nå.",
+      why: "Det viser om hindringen handler om informasjon, kapasitet, økonomi, rettigheter eller en beslutning.",
+      verifyWith: "Svar eller dokumentasjon fra personen, plattformen eller organisasjonen som eier avklaringen.",
+    },
+  };
+
+  return actions[obstacle];
+}
+
+function actionForArtistRole(role: z.infer<typeof artistRoleSchema>): SupportAction {
+  const actions: Record<z.infer<typeof artistRoleSchema>, SupportAction> = {
+    performer: {
+      title: "Kontroller utøverrollen på innspillingen",
+      action: "Bekreft hvilke spor du medvirker på og hvilken rolle du hadde. Se gjeldende Gramo-veiledning og avklar mangler med produsent eller label.",
+      why: "Rettigheter knyttet til en innspilt fremføring er noe annet enn rettighetene til komposisjonen.",
+      verifyWith: "Innspillingskreditering, avtale og gjeldende informasjon fra Gramo.",
+    },
+    songwriter: {
+      title: "Avklar verk og andeler med medlåtskrivere",
+      action: "Samle korrekt verkstittel, alle låtskrivere og skriftlig avtalte andeler. Bruk TONOs gjeldende veiledning for verkregistrering.",
+      why: "Komposisjonsrettigheter må holdes adskilt fra eierskap til lydopptaket.",
+      verifyWith: "Skriftlig enighet mellom låtskriverne og gjeldende TONO-veiledning.",
+    },
+    producer: {
+      title: "Avklar produsentkreditering og rettighetsrolle",
+      action: "Sjekk produsentkreditering, medvirkende utøvere og hva kontrakten sier om master og betaling. Skill dette fra eventuelle Gramo-krav.",
+      why: "Kreditering, mastereierskap og vederlag følger ikke automatisk samme avtale eller regel.",
+      verifyWith: "Signert produsent-/labelavtale og gjeldende veiledning fra relevant rettighetsorganisasjon.",
+    },
+    "independent-artist": {
+      title: "Sjekk distribusjonsdata og rettigheter før levering",
+      action: "Sammenlign artistnavn, tittel, dato, medvirkende, eksplisitt-merking og eierskapslinjer. Bekreft master, samples og nødvendige tillatelser.",
+      why: "Selvutgivere må ofte koordinere metadata og rettighetsavklaringer på tvers av flere tjenester.",
+      verifyWith: "Distributørens aktuelle krav, godkjente metadata og skriftlige rettighetsavklaringer.",
+    },
+    "label-team": {
+      title: "Samle godkjente metadata fra bidragsyterne",
+      action: "Bruk én versjon av utgivelsesdata og bekreft artistnavn, roller, avtaler, datoer og leveringskrav med artist og distributør.",
+      why: "Et felles datagrunnlag reduserer avvik mellom distribusjon, presse og plattformer.",
+      verifyWith: "Artistens skriftlige godkjenning, relevante avtaler og distributørens produktdata.",
+    },
+    "multi-role": {
+      title: "Hold verk, fremføring og master i separate spor",
+      action: "Skriv opp hvilke bidrag som gjelder komposisjon, innspilt fremføring og master. Avklar roller og andeler hver for seg før registrering eller levering.",
+      why: "Én person kan ha flere roller, men de gir ikke nødvendigvis samme rettigheter eller registrering.",
+      verifyWith: "Avtaler og bekreftelser fra bidragsyterne, samt gjeldende veiledning fra TONO, Gramo og distributøren.",
+    },
+  };
+
+  return actions[role];
+}
+
+function actionForProjectFocus(focus: z.infer<typeof projectFocusSchema>): SupportAction {
+  const actions: Record<z.infer<typeof projectFocusSchema>, SupportAction> = {
+    recording: {
+      title: "Avklar leveranser og ansvar før innspilling",
+      action: "Skriv ned hvem som leverer opptak, produksjon, miks, master og visuelt materiell, hva det koster og hvilke rettigheter som avtales.",
+      why: "Tidlige avklaringer gjør det enklere å ferdigstille innspillingen og planlegge kostnader.",
+      verifyWith: "Avtaler, godkjent budsjett og leveranseplan.",
+    },
+    release: {
+      title: "Kontroller metadata og dato på tvers av utgivelsen",
+      action: "Sammenlign distributørskjema, cover, credits og kampanjemateriell. Skill mellom godkjent, levert og faktisk live.",
+      why: "Distribusjonsstatus og offentlig tilgjengelighet er ulike steg.",
+      verifyWith: "Distributørens status og fungerende offentlige lenker til riktig utgivelse.",
+    },
+    live: {
+      title: "Lag en realistisk plan for konsertaktivitet",
+      action: "Avgrens målområde, passende scener, datoer, honorar-/reisebudsjett og hvem som følger opp booking.",
+      why: "En lokal eller regional plan kan konkretiseres før større turnékostnader vurderes.",
+      verifyWith: "Bekreftede spillestedsvilkår, kostnader og gjeldende støttekrav dersom støtte vurderes.",
+    },
+    export: {
+      title: "Velg ett målmarked og kontroller forutsetningene",
+      action: "Beskriv hvorfor markedet passer, hvem som kan åpne dører der, kostnadene og hva som må være klart før reisen.",
+      why: "Eksportarbeid krever relasjoner og ressurser; et avgrenset forsøk tydeliggjør risiko og læring.",
+      verifyWith: "Bekreftede lokale samarbeid, oppdaterte reisekostnader og Music Norways gjeldende vilkår dersom støtte vurderes.",
+    },
+    career: {
+      title: "Velg et målbart karrieresteg for de neste månedene",
+      action: "Velg én utviklingsprioritet, for eksempel repertoar, live-erfaring, samarbeid eller artistmateriell, og knytt den til en dato og ansvarlig.",
+      why: "En konkret milepæl gjør det enklere å følge framgang uten å forutsette rask vekst eller inntekt.",
+      verifyWith: "En datert milepæl og dokumentasjon på gjennomført aktivitet.",
+    },
+  };
+
+  return actions[focus];
+}
+
+const norwayResources = [
+  { name: "Musikkontoret – støtteordninger", url: "https://www.musikkontoret.no/tilskuddsordninger", use: "Finn mulige ordninger; kontroller alltid reglene hos støttegiver." },
+  { name: "Music Norway", url: "https://musicnorway.no", use: "Startpunkt for norsk musikkeksport og internasjonal aktivitet." },
+  { name: "Kulturdirektoratet", url: "https://www.kulturdirektoratet.no", use: "Offisiell informasjon om relevante kulturordninger." },
+  { name: "TONO", url: "https://www.tono.no", use: "Veiledning om opphaver-/komposisjonssiden." },
+  { name: "Gramo", url: "https://gramo.no/no", use: "Veiledning om relevante rettigheter for innspillinger og medvirkende." },
+];
+
 function startIndexForStage(stage: z.infer<typeof stageSchema>): number {
   return {
     idea: 0,
@@ -61,10 +224,10 @@ function startIndexForStage(stage: z.infer<typeof stageSchema>): number {
 
 function createMusicReleaseServer(): McpServer {
   const server = new McpServer(
-    { name: "music-release-manager", version: "1.0.0" },
+    { name: "music-release-manager", version: "1.1.0" },
     {
       instructions:
-        "This server is exclusively for releasing music—not software. Help artists and record labels plan songs, singles, EPs and albums. It never publishes, sends outreach, activates ads or spends money.",
+        "This server is exclusively for music—not software. It provides music-release planning, readiness checks, and general Norway-aware artist support. It never publishes, sends outreach, activates ads, or spends money. Verify current funding deadlines and eligibility with the official funder; the Norway support tool does not browse or confirm them.",
     }
   );
 
@@ -252,6 +415,82 @@ function createMusicReleaseServer(): McpServer {
         ],
         structuredContent,
         _meta: { "openai/outputTemplate": widgetUri },
+      };
+    }
+  );
+
+  registerAppTool(
+    server,
+    "create_norway_artist_support_plan",
+    {
+      title: "Create Norway artist support plan",
+      description:
+        "Use this when an artist in Norway asks how to overcome a release, rights, funding, capacity, audience, or career obstacle. It returns three profile-based practical priorities and official starting points. It does not verify live deadlines, eligibility, or current grant rules.",
+      inputSchema: {
+        artistName: z.string().min(1).max(120).optional().describe("Optional artist or project name."),
+        artistRole: artistRoleSchema.describe("The artist's main role in this project."),
+        area: z.string().max(120).optional().describe("Optional municipality or county."),
+        projectFocus: projectFocusSchema.describe("The main project: recording, release, live work, export, or career development."),
+        mainObstacle: obstacleSchema.describe("The most urgent obstacle to address."),
+      },
+      outputSchema: {
+        kind: z.literal("norway-support-plan"),
+        artistName: z.string(),
+        artistRole: z.string(),
+        area: z.string().nullable(),
+        projectFocus: z.string(),
+        mainObstacle: z.string(),
+        nextActions: z.array(
+          z.object({
+            priority: z.number(),
+            title: z.string(),
+            action: z.string(),
+            why: z.string(),
+            verifyWith: z.string(),
+          })
+        ),
+        resources: z.array(
+          z.object({ name: z.string(), url: z.string(), use: z.string() })
+        ),
+        currentInfoNote: z.string(),
+      },
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+      },
+      _meta: {
+        "openai/toolInvocation/invoking": "Building a Norway artist support plan",
+        "openai/toolInvocation/invoked": "Norway artist support plan ready",
+      },
+    },
+    async ({ artistName, artistRole, area, projectFocus, mainObstacle }) => {
+      const structuredContent = {
+        kind: "norway-support-plan" as const,
+        artistName: artistName ?? "Artist project",
+        artistRole,
+        area: area ?? null,
+        projectFocus,
+        mainObstacle,
+        nextActions: [
+          actionForObstacle(mainObstacle),
+          actionForArtistRole(artistRole),
+          actionForProjectFocus(projectFocus),
+        ].map((action, index) => ({ priority: index + 1, ...action })),
+        resources: norwayResources,
+        currentInfoNote:
+          "This plan uses stable general guidance only. It has not checked current funding calls, deadlines, eligibility, or costs. Verify those details on the official funder's page before acting.",
+      };
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Created a Norway artist support plan for ${structuredContent.artistName}. The plan prioritizes ${mainObstacle}, the artist's role, and the ${projectFocus} project. Current funding details still need official verification.`,
+          },
+        ],
+        structuredContent,
       };
     }
   );

@@ -1,6 +1,6 @@
 {
   "name": "release-manager",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Manage music and song releases for independent artists and record labels—not software releases.",
   "author": {
     "name": "Elvic Records, part of Elvic Gruppen AS"
@@ -8,8 +8,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Music Release Manager",
-    "shortDescription": "Music releases for artists and labels.",
-    "longDescription": "A practical music-release workspace for independent artists and record labels—not software deployment. Plan and track every stage of releasing a song, single, EP, or album: audio and artwork, metadata, distributor delivery, Spotify pitching and Canvas, lyrics, smart links, social content, advertising, press, radio, release day, and post-release follow-through. By Elvic Records, part of Elvic Gruppen AS.",
+    "shortDescription": "Music releases plus Norway-aware artist support.",
+    "longDescription": "A practical music-release workspace for independent artists and record labels—not software deployment. Plan and track every stage of releasing a song, single, EP, or album: audio and artwork, metadata, distributor delivery, Spotify pitching and Canvas, lyrics, smart links, social content, advertising, press, radio, release day, and post-release follow-through. For artists in Norway, it also provides role-aware guidance on rights, release admin, funding discovery, and realistic next steps. Current deadlines and eligibility must be verified with each official funder. By Elvic Records, part of Elvic Gruppen AS.",
     "developerName": "Elvic Records, part of Elvic Gruppen AS",
     "category": "Productivity",
     "capabilities": [],
