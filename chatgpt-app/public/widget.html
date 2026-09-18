@@ -30,6 +30,20 @@
       h2 { margin: 0 0 8px; font-size: 14px; }
       ul { margin: 0; padding-left: 18px; color: #d8d2c8; font-size: 13px; }
       .note { margin-top: 16px; color: #9d978c; font-size: 11px; line-height: 1.4; }
+      .content-pack { display: grid; gap: 14px; margin-top: 16px; }
+      .content-section { padding: 13px; border-radius: 6px; background: #ffffff0d; border: 1px solid #ffffff14; }
+      .content-section h2 { color: #f4d88d; }
+      .copy-field { margin-top: 10px; }
+      .copy-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+      .copy-field strong, .field-label { display: block; color: #f8f5ed; font-size: 12px; }
+      .copy-field p, .field-value { margin: 5px 0 0; white-space: pre-wrap; color: #d8d2c8; font-size: 13px; line-height: 1.45; }
+      .copy-btn { flex: 0 0 auto; padding: 5px 8px; border: 1px solid #74602f; border-radius: 4px; color: #f4d88d; background: #ffffff0d; font: inherit; font-size: 11px; cursor: pointer; }
+      .copy-btn:hover { background: #f4b51c22; }
+      .copy-btn:focus-visible { outline: 2px solid #f4d88d; outline-offset: 2px; }
+      .field { margin-top: 9px; padding-top: 9px; border-top: 1px solid #ffffff12; }
+      .field:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+      .field-meta { color: #aaa397; font-size: 11px; }
+      .confirm { border-left: 3px solid #cf8d45; }
       [hidden] { display: none !important; }
       @media (max-width: 480px) { .phases { grid-template-columns: repeat(4, 1fr); } .lists { grid-template-columns: 1fr; } }
     </style>
@@ -45,6 +59,7 @@
         <div class="score" id="score" hidden>0%</div>
       </div>
       <div class="actions" id="actions"></div>
+      <section class="content-pack" id="contentPack" hidden></section>
       <div class="phases" id="phases"></div>
       <section class="resources" id="resources" hidden>
         <h2>Norwegian starting points</h2>
@@ -61,10 +76,64 @@
       const byId = (id) => document.getElementById(id);
       const list = (items) => (items || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("");
       const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+      const fieldLabels = {
+        en: {
+          shortBio: "Short bio", longBio: "Long bio", releaseDescription: "Release description",
+          editorialPitch: "Editorial pitch", pressRelease: "Press release", pressEmailSubject: "Press email subject",
+          pressEmailBody: "Press email body", youtubeDescription: "YouTube description",
+        },
+        no: {
+          shortBio: "Kort artistbio", longBio: "Lang artistbio", releaseDescription: "Utgivelsesbeskrivelse",
+          editorialPitch: "Redaksjonell pitch", pressRelease: "Pressemelding", pressEmailSubject: "Emne for presse-e-post",
+          pressEmailBody: "Presse-e-post", youtubeDescription: "YouTube-beskrivelse",
+        },
+      };
+      const renderCopyFields = (content, language, copyLabel) => Object.entries(content || {})
+        .filter(([, value]) => value)
+        .map(([key, value]) => `<div class="copy-field"><div class="copy-head"><strong>${escapeHtml(fieldLabels[language][key] || key)}</strong><button class="copy-btn" type="button" data-copy="${escapeHtml(value)}" data-copy-label="${escapeHtml(copyLabel)}">${escapeHtml(copyLabel)}</button></div><p>${escapeHtml(value)}</p></div>`)
+        .join("");
+      const renderFieldValues = (fields, copyLabel) => (fields || []).map((field) => `<div class="field"><div class="copy-head"><span class="field-meta">${escapeHtml(field.form)}</span><button class="copy-btn" type="button" data-copy="${escapeHtml(field.value)}" data-copy-label="${escapeHtml(copyLabel)}">${escapeHtml(copyLabel)}</button></div><strong class="field-label">${escapeHtml(field.label)}</strong><p class="field-value">${escapeHtml(field.value)}</p></div>`).join("");
 
       function render() {
         if (!output) return;
         byId("resources").hidden = output.kind !== "norway-support-plan";
+        byId("contentPack").hidden = output.kind !== "artist-content-pack";
+
+        if (output.kind === "artist-content-pack") {
+          const norwegian = /norwegian|norsk|bokm[aå]l|nynorsk/i.test(output.language || "");
+          const locale = norwegian ? "no" : "en";
+          const copyLabel = norwegian ? "Kopier" : "Copy";
+          byId("title").textContent = `${output.artist || "Artist"} — ${output.releaseTitle || (norwegian ? "Artistinnhold" : "Artist content")}`;
+          byId("subtitle").textContent = [output.language, output.releaseDate].filter(Boolean).join(" · ");
+          byId("score").hidden = true;
+          byId("lists").hidden = true;
+          byId("phases").hidden = true;
+          byId("actions").innerHTML = "";
+          const social = (output.socialCaptions || []).map((item) => `<div class="copy-field"><div class="copy-head"><strong>${escapeHtml(item.platform)}</strong><button class="copy-btn" type="button" data-copy="${escapeHtml(item.content)}" data-copy-label="${copyLabel}">${copyLabel}</button></div><p>${escapeHtml(item.content)}</p></div>`).join("");
+          const videos = (output.shortVideoIdeas || []).map((item) => {
+            const hook = norwegian ? "Startkrok" : "Hook";
+            const shots = norwegian ? "Klipp" : "Shots";
+            const callToAction = norwegian ? "Oppfordring" : "CTA";
+            const copyText = `${item.platform} — ${item.concept}\n${hook}: ${item.openingHook}\n${shots}: ${(item.shotList || []).join("; ")}\n${callToAction}: ${item.callToAction}`;
+            return `<div class="field"><div class="copy-head"><strong class="field-label">${escapeHtml(item.platform)} — ${escapeHtml(item.concept)}</strong><button class="copy-btn" type="button" data-copy="${escapeHtml(copyText)}" data-copy-label="${copyLabel}">${copyLabel}</button></div><p class="field-value"><strong>${hook}:</strong> ${escapeHtml(item.openingHook)}<br><strong>${shots}:</strong> ${escapeHtml((item.shotList || []).join(" · "))}<br><strong>${callToAction}:</strong> ${escapeHtml(item.callToAction)}</p></div>`;
+          }).join("");
+          const images = (output.imageConcepts || []).map((item) => {
+            const promptLabel = norwegian ? "Kopier prompt" : "Copy prompt";
+            const avoid = norwegian ? "Unngå" : "Avoid";
+            return `<div class="field"><div class="copy-head"><strong class="field-label">${escapeHtml(item.purpose)} · ${escapeHtml(item.format)}</strong><button class="copy-btn" type="button" data-copy="${escapeHtml(item.prompt)}" data-copy-label="${promptLabel}">${promptLabel}</button></div><p class="field-value">${escapeHtml(item.prompt)}${item.textOverlay ? `<br><strong>${norwegian ? "Tekst" : "Text"}:</strong> ${escapeHtml(item.textOverlay)}` : ""}<br><strong>${avoid}:</strong> ${escapeHtml((item.exclusions || []).join(" · "))}</p></div>`;
+          }).join("");
+          const forms = renderFieldValues(output.formFields, copyLabel);
+          const confirmations = (output.confirmBeforeUse || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+          byId("contentPack").innerHTML = `
+            ${output.content && Object.keys(output.content).length ? `<section class="content-section"><h2>${norwegian ? "Tekst" : "Copy"}</h2>${renderCopyFields(output.content, locale, copyLabel)}</section>` : ""}
+            ${social ? `<section class="content-section"><h2>${norwegian ? "Sosiale medier" : "Social captions"}</h2>${social}</section>` : ""}
+            ${videos ? `<section class="content-section"><h2>${norwegian ? "Kortvideoer" : "Short-video ideas"}</h2>${videos}</section>` : ""}
+            ${images ? `<section class="content-section"><h2>${norwegian ? "Bildebrief og prompt" : "Image briefs and prompts"}</h2>${images}</section>` : ""}
+            ${forms ? `<section class="content-section"><h2>${norwegian ? "Skjemafelt" : "Form fields"}</h2>${forms}</section>` : ""}
+            ${confirmations ? `<section class="content-section confirm"><h2>${norwegian ? "Bekreft før bruk" : "Confirm before use"}</h2><ul>${confirmations}</ul></section>` : ""}`;
+          byId("note").textContent = output.safetyNote || "Review factual claims, rights, links and permissions before use. Nothing has been submitted.";
+          return;
+        }
 
         if (output.kind === "norway-support-plan") {
           byId("title").textContent = output.artistName || "Artist project";
@@ -99,6 +168,19 @@
         }
       }
 
+      document.addEventListener("click", async (event) => {
+        if (!(event.target instanceof Element)) return;
+        const button = event.target.closest("[data-copy]");
+        if (!button) return;
+        try {
+          await navigator.clipboard.writeText(button.dataset.copy || "");
+          button.textContent = /norwegian|norsk|bokm[aå]l|nynorsk/i.test(output?.language || "") ? "Kopiert" : "Copied";
+          window.setTimeout(() => { button.textContent = button.dataset.copyLabel || "Copy"; }, 1400);
+        } catch {
+          button.textContent = /norwegian|norsk|bokm[aå]l|nynorsk/i.test(output?.language || "") ? "Kopiering ikke tilgjengelig" : "Copy unavailable";
+        }
+      });
+
       window.addEventListener("message", (event) => {
         if (event.source !== window.parent) return;
         const message = event.data;
@@ -115,7 +197,7 @@
         }
       });
       window.parent.postMessage({jsonrpc:"2.0",id:"initialize",method:"ui/initialize",params:{
-        appInfo:{name:"music-release-manager",version:"1.1.0"},
+        appInfo:{name:"music-release-manager",version:"1.2.0"},
         appCapabilities:{},protocolVersion:"2026-01-26"
       }}, "*");
       render();

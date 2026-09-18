@@ -211,6 +211,44 @@ const norwayResources = [
   { name: "Gramo", url: "https://gramo.no/no", use: "Veiledning om relevante rettigheter for innspillinger og medvirkende." },
 ];
 
+const artistContentSchema = z.object({
+  shortBio: z.string().max(2_000).optional(),
+  longBio: z.string().max(6_000).optional(),
+  releaseDescription: z.string().max(4_000).optional(),
+  editorialPitch: z.string().max(3_000).optional(),
+  pressRelease: z.string().max(8_000).optional(),
+  pressEmailSubject: z.string().max(300).optional(),
+  pressEmailBody: z.string().max(5_000).optional(),
+  youtubeDescription: z.string().max(5_000).optional(),
+});
+
+const socialCaptionSchema = z.object({
+  platform: z.string().max(80),
+  content: z.string().max(2_000),
+});
+
+const shortVideoIdeaSchema = z.object({
+  platform: z.string().max(80),
+  concept: z.string().max(1_000),
+  openingHook: z.string().max(500),
+  shotList: z.array(z.string().max(500)).max(8),
+  callToAction: z.string().max(500),
+});
+
+const imageConceptSchema = z.object({
+  purpose: z.string().max(200),
+  format: z.string().max(120),
+  prompt: z.string().max(3_000),
+  textOverlay: z.string().max(500).optional(),
+  exclusions: z.array(z.string().max(300)).max(10),
+});
+
+const formFieldSchema = z.object({
+  form: z.string().max(160),
+  label: z.string().max(200),
+  value: z.string().max(4_000),
+});
+
 function startIndexForStage(stage: z.infer<typeof stageSchema>): number {
   return {
     idea: 0,
@@ -224,10 +262,10 @@ function startIndexForStage(stage: z.infer<typeof stageSchema>): number {
 
 function createMusicReleaseServer(): McpServer {
   const server = new McpServer(
-    { name: "music-release-manager", version: "1.1.0" },
+    { name: "music-release-manager", version: "1.2.0" },
     {
       instructions:
-        "This server is exclusively for music—not software. It provides music-release planning, readiness checks, and general Norway-aware artist support. It never publishes, sends outreach, activates ads, or spends money. Verify current funding deadlines and eligibility with the official funder; the Norway support tool does not browse or confirm them.",
+        "This server is exclusively for music—not software. It provides music-release planning, readiness checks, Norway-aware artist support, and an Artist Content Studio. When an artist asks for release copy or promotional assets, use the conversation and user-provided files as source material, do not invent biographical or release facts, write the requested drafts in the artist's language, and call create_artist_content_pack to present them as copyable deliverables. Add clear placeholders or list facts to confirm where details are missing. Include image prompts and visual briefs; generate an actual image only if the host explicitly provides image-generation capability, and never claim a prompt is a finished image. If the artist explicitly asks you to fill fields, use only the available in-app browser and the artist's current, intended page; fill only requested fields and do not submit. Sending, publishing, scheduling, submitting, activating ads, or spending money always requires separate explicit approval. Never ask for passwords or authentication codes. Verify current funding deadlines and eligibility with the official funder; the Norway support tool does not browse or confirm them.",
     }
   );
 
@@ -244,11 +282,95 @@ function createMusicReleaseServer(): McpServer {
             csp: { connectDomains: [], resourceDomains: [] },
           },
           "openai/widgetDescription":
-            "A compact black-and-gold music release workspace showing release phases, readiness gaps or Norway-aware artist support priorities.",
+            "A compact music workspace showing release phases, readiness gaps, Norway-aware artist support, or copyable release content and form-field drafts.",
         },
       },
     ],
   }));
+
+  registerAppTool(
+    server,
+    "create_artist_content_pack",
+    {
+      title: "Create artist content pack",
+      description:
+        "Use after drafting music-related copy or promotional assets at the artist's request. Packages only the model-written drafts into clearly labeled, copyable deliverables, including release/profile copy, social captions, short-video concepts, image prompts, and website/form field values. Use confirmed facts only and put unknowns in confirmBeforeUse. This tool does not generate image files, browse, fill external forms, save data, or publish, send, submit, schedule, or spend.",
+      inputSchema: {
+        artist: z.string().min(1).max(120).describe("Artist or project name."),
+        releaseTitle: z.string().min(1).max(160).optional().describe("Optional release or campaign title."),
+        releaseDate: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional()
+          .describe("Confirmed release date, if known."),
+        language: z.string().min(1).max(80).describe("Language used for the requested deliverables."),
+        content: artistContentSchema.describe("Only include the requested copy fields."),
+        socialCaptions: z.array(socialCaptionSchema).max(12).default([]),
+        shortVideoIdeas: z.array(shortVideoIdeaSchema).max(8).default([]),
+        imageConcepts: z.array(imageConceptSchema).max(8).default([]),
+        formFields: z.array(formFieldSchema).max(30).default([]),
+        confirmBeforeUse: z
+          .array(z.string().max(500))
+          .max(20)
+          .default([])
+          .describe("Unverified facts, placeholders, permissions, or platform requirements the artist should check."),
+      },
+      outputSchema: {
+        kind: z.literal("artist-content-pack"),
+        artist: z.string(),
+        releaseTitle: z.string().nullable(),
+        releaseDate: z.string().nullable(),
+        language: z.string(),
+        content: artistContentSchema,
+        socialCaptions: z.array(socialCaptionSchema),
+        shortVideoIdeas: z.array(shortVideoIdeaSchema),
+        imageConcepts: z.array(imageConceptSchema),
+        formFields: z.array(formFieldSchema),
+        confirmBeforeUse: z.array(z.string()),
+        safetyNote: z.string(),
+      },
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+      },
+      _meta: {
+        ui: { resourceUri: widgetUri },
+        "openai/toolInvocation/invoking": "Preparing artist content pack",
+        "openai/toolInvocation/invoked": "Artist content pack ready",
+      },
+    },
+    async ({ artist, releaseTitle, releaseDate, language, content, socialCaptions, shortVideoIdeas, imageConcepts, formFields, confirmBeforeUse }) => {
+      const structuredContent = {
+        kind: "artist-content-pack" as const,
+        artist,
+        releaseTitle: releaseTitle ?? null,
+        releaseDate: releaseDate ?? null,
+        language,
+        content,
+        socialCaptions,
+        shortVideoIdeas,
+        imageConcepts,
+        formFields,
+        confirmBeforeUse,
+        safetyNote: /norwegian|norsk|bokm[aå]l|nynorsk/i.test(language)
+          ? "Utkastene bygger bare på opplysningene i samtalen. Kontroller fakta, rettigheter, krediteringer, lenker, plattformkrav og bilderettigheter før bruk. Ingen eksterne skjemaer er fylt ut eller sendt inn."
+          : "Drafts are based only on the supplied conversation context. Review factual claims, rights, credits, links, platform limits, and image permissions before use. No external form has been filled or submitted.",
+      };
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Prepared a ${language} artist content pack for ${artist}${releaseTitle ? ` — ${releaseTitle}` : ""}. It contains ${socialCaptions.length} social captions, ${shortVideoIdeas.length} short-video ideas, ${imageConcepts.length} image concepts, and ${formFields.length} form-field drafts.`,
+          },
+        ],
+        structuredContent,
+        _meta: { "openai/outputTemplate": widgetUri },
+      };
+    }
+  );
 
   registerAppTool(
     server,

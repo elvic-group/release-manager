@@ -14,7 +14,7 @@ npm run check
 PORT=8790 npm start
 ```
 
-The MCP endpoint is `/mcp`. Tools compute results from user-supplied details without persistent storage or external account access. The Norway artist support tool provides general, role-aware next steps and official starting points, but does not verify current funding deadlines or eligibility. Earlier release phases are unverified, not automatically completed. Readiness percentages measure only the six supplied checklist answers, not real DSP availability or overall release success.
+The MCP endpoint is `/mcp`. Tools compute results from user-supplied details without persistent storage or external account access. The Artist Content Studio packages model-written copy, social and short-video ideas, image prompts, and proposed form-field values in a copyable widget. The host model writes the creative content; the app server does not generate image files, browse or fill forms, or publish or submit anything. The Norway artist support tool provides general, role-aware next steps and official starting points, but does not verify current funding deadlines or eligibility. Earlier release phases are unverified, not automatically completed. Readiness percentages measure only the six supplied checklist answers, not real DSP availability or overall release success.
 
 ## Production and submission notes
 
@@ -23,9 +23,9 @@ The MCP endpoint is `/mcp`. Tools compute results from user-supplied details wit
 - Set `OPENAI_APPS_CHALLENGE` to the portal's domain verification token when required.
 - Test in ChatGPT Developer Mode, including widget rendering and error behavior.
 - Complete publisher identity verification and Apps Management access in OpenAI Platform.
-- Generate review artifacts with five positive and three negative test cases, then submit for review.
+- Generate review artifacts with six positive and three negative test cases, then submit for review.
 
-No OpenAI API key is needed by this server. ChatGPT supplies the conversational model; the server performs deterministic checklist computations.
+No OpenAI API key is needed by this server. ChatGPT supplies the conversational model; the server packages structured drafts and performs deterministic checklist computations.
 
 ## Validation reached
 

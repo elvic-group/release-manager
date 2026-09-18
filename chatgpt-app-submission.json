@@ -4,7 +4,7 @@
   "app_info": {
     "display_name": "Music Release Manager",
     "subtitle": "Music release planning",
-    "description": "Music Release Manager helps independent artists and labels plan releases, check readiness from supplied facts, and get practical, role-aware starting steps for common music-career obstacles in Norway. It does not publish releases, access distributor accounts, or verify current funding deadlines or eligibility.",
+    "description": "Plan music releases, check readiness, and create editable bios, release copy, social/video ideas, image prompts and form-field drafts. Includes Norway-aware artist support. The app does not access artist accounts, publish or submit, generate image files itself, or verify live grant rules.",
     "category": "PRODUCTIVITY"
   },
   "tools": {
@@ -43,6 +43,18 @@
         "open_world_justification": "The tool returns curated official starting-point links but does not browse them, submit forms, or change public or third-party state.",
         "destructive_justification": "The tool does not delete, overwrite, or change any data or account state."
       }
+    },
+    "create_artist_content_pack": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Packages model-written release copy, social ideas, image prompts, and proposed form values without storing, changing, or submitting them.",
+        "open_world_justification": "The tool does not browse external pages, generate image files, fill forms, or communicate with third-party services.",
+        "destructive_justification": "The tool does not delete, overwrite, publish, send, submit, schedule, or change any account state."
+      }
     }
   },
   "test_cases": [
@@ -76,6 +88,14 @@
       "file_attachment_urls": null,
       "tools_triggered": "create_norway_artist_support_plan",
       "expected_output": "Returns practical capacity, producer-role, and live-project priorities without promising bookings, income, or funding.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Create editable release copy and promotion assets for an artist.",
+      "user_prompt": "Write a Norwegian content pack for my single Times Up: a short bio, release description, Spotify editorial pitch, three social captions, two TikTok ideas, an image prompt for a 9:16 cover teaser, and proposed fields for a press submission form. Use placeholders for anything I have not confirmed.",
+      "file_attachment_urls": null,
+      "tools_triggered": "create_artist_content_pack",
+      "expected_output": "Returns clearly labeled copy, social/video ideas, an image brief or prompt, form-field values, and a confirm-before-use list. It does not claim to have generated an image or submitted the form.",
       "expected_output_url": null
     },
     {

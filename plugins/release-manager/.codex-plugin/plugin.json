@@ -1,6 +1,6 @@
 {
   "name": "release-manager",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Manage music and song releases for independent artists and record labels—not software releases.",
   "author": {
     "name": "Elvic Records, part of Elvic Gruppen AS"
@@ -8,8 +8,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Music Release Manager",
-    "shortDescription": "Music releases plus Norway-aware artist support.",
-    "longDescription": "A practical music-release workspace for independent artists and record labels—not software deployment. Plan and track every stage of releasing a song, single, EP, or album: audio and artwork, metadata, distributor delivery, Spotify pitching and Canvas, lyrics, smart links, social content, advertising, press, radio, release day, and post-release follow-through. For artists in Norway, it also provides role-aware guidance on rights, release admin, funding discovery, and realistic next steps. Current deadlines and eligibility must be verified with each official funder. By Elvic Records, part of Elvic Gruppen AS.",
+    "shortDescription": "Plan releases and create artist content.",
+    "longDescription": "A practical music-release workspace for independent artists and record labels—not software deployment. Plan and track every stage of releasing a song, single, EP, or album: audio and artwork, metadata, distributor delivery, Spotify pitching and Canvas, lyrics, smart links, social content, advertising, press, radio, release day, and post-release follow-through. The Artist Content Studio turns confirmed release details into editable bios, release copy, pitches, social captions, short-video concepts, image prompts and form-field drafts. For artists in Norway, it also provides role-aware guidance on rights, release admin, funding discovery, and realistic next steps. Current deadlines and eligibility must be verified with each official funder. By Elvic Records, part of Elvic Gruppen AS.",
     "developerName": "Elvic Records, part of Elvic Gruppen AS",
     "category": "Productivity",
     "capabilities": [],
@@ -17,6 +17,6 @@
     "composerIcon": "./assets/release-manager-logo.png",
     "logo": "./assets/release-manager-logo.png",
     "logoDark": "./assets/release-manager-logo.png",
-    "defaultPrompt": "Help me plan the release of a song, EP, or album. Start with the artist, title, release date, and current stage."
+    "defaultPrompt": "Help me plan a song, EP, or album release, or create the copy and content assets I need for it."
   }
 }

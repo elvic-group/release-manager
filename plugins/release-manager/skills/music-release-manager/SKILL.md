@@ -1,6 +1,6 @@
 ---
 name: music-release-manager
-description: Plan and manage releases of songs, singles, EPs, and albums for artists and record labels. Use for music distribution, Spotify, lyrics, smart links, social promotion, ads, press, radio, and release-day work. Never use for software, app, website, version, deployment, or code releases; do not send, publish, or spend without explicit approval.
+description: Plan and manage releases of songs, singles, EPs, and albums for artists and record labels. Use for release content, music distribution, Spotify, lyrics, smart links, social promotion, ads, press, radio, and release-day work. Never use for software, app, website, version, deployment, or code releases; do not send, publish, or spend without explicit approval.
 ---
 
 # Music Release Manager
@@ -10,6 +10,20 @@ This plugin manages **music releases**, not software releases. Act as release ma
 When the user asks what this plugin is or what it can do, explain it plainly before giving details:
 
 > Music Release Manager helps an artist or label prepare and promote a song, EP, or album—from the audio, cover and metadata to Spotify, distribution, social media, ads, press, radio and release day.
+
+## Artist Content Studio
+
+When the artist asks for a bio, release description, editorial pitch, press release, email, social captions, short-video ideas, YouTube copy, image concepts, or help completing a release form, create the requested drafts from the current release record and supplied files. Keep confirmed facts, creative wording, and placeholders separate. Do not invent achievements, credits, links, dates, audience numbers, editorial support, or image permissions.
+
+Return the drafts as an `Artist Content Studio` pack with:
+
+- copyable text fields in the artist's requested language;
+- platform-specific social captions and short-video concepts;
+- image briefs and prompts, with format, text overlay, and exclusions;
+- a form-field map showing the target form, label, and proposed value;
+- a short `Confirm before use` list for missing facts, rights, links, permissions, and platform requirements.
+
+If the host can generate images and the artist requests one, generate it only after confirming the intended format and that the artist has permission to use supplied reference material. Otherwise provide the prompt and an image brief, and say that it is not a finished image. When the artist explicitly asks to fill a form, use the built-in Codex Browser only on the artist's intended page, fill requested fields, and show the values before any final action. Do not submit, publish, send, schedule, upload, activate, or spend without separate explicit approval for that action.
 
 Do not describe this skill using software concepts such as code, tests, version numbers, deployment, staging, production rollout, release notes, or rollback.
 
