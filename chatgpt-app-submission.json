@@ -4,7 +4,7 @@
   "app_info": {
     "display_name": "Music Release Manager",
     "subtitle": "Music release planning",
-    "description": "Plan releases, check readiness, and create editable content and ChatGPT Ads campaign briefs. Includes Norway-aware artist support. The app never accesses accounts, buys or launches ads, publishes or submits, generates image files, or verifies live rules.",
+    "description": "Plan releases, create editable content and campaign briefs, analyse supplied audio, and prepare Norway-aware funding research and application drafts. The app never accesses accounts, buys or launches ads, publishes, submits or verifies live eligibility rules.",
     "category": "PRODUCTIVITY"
   },
   "tools": {
@@ -66,6 +66,30 @@
         "read_only_justification": "Packages model-written campaign planning, ad copy, creative briefs, budget fields, and approval checks without storing data or accessing an ad account.",
         "open_world_justification": "The tool does not browse Ads Manager, retrieve live pricing or policies, fill ad forms, add payment information, or communicate with advertising services.",
         "destructive_justification": "The tool does not buy, launch, pause, edit, or delete advertising, and does not spend money or change account state."
+      }
+    },
+    "find_norway_funding_options": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Matches an artist's supplied project profile against a maintained public funding catalog without storing the profile or changing any application.",
+        "open_world_justification": "The tool does not browse live funding sites, submit forms, or communicate with funders.",
+        "destructive_justification": "The tool does not delete, overwrite, submit, or change data or account state."
+      }
+    },
+    "create_funding_application_workspace": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Creates a reviewable application-preparation workspace from artist-supplied draft details without saving or transmitting a submission.",
+        "open_world_justification": "The tool links to the official source but does not open forms, send documents, or contact funders.",
+        "destructive_justification": "The tool does not submit an application, make payments, or change any account state."
       }
     }
   },

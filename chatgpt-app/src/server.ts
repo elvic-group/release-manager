@@ -3,6 +3,9 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { analyzeAudioFile } from "./audio-analysis.js";
+import { fundingActivities, fundingDirectory, getFundingPrograms, matchFundingPrograms } from "./funding-catalog.js";
+
 import {
   registerAppResource,
   registerAppTool,
@@ -23,10 +26,14 @@ const concertCardUri = "ui://music-release-manager/concert-card-v2.html";
 const pressPitchUri = "ui://music-release-manager/press-pitch-v2.html";
 const contentSelectorUri = "ui://music-release-manager/content-selector-v2.html";
 const operationsBoardUri = "ui://music-release-manager/operations-board-v2.html";
+const audioAnalysisUri = "ui://music-release-manager/audio-analysis-v1.html";
+const fundingWorkspaceUri = "ui://music-release-manager/funding-workspace-v1.html";
 const releaseDashboardHtml = readFileSync(path.join(rootDir, "public", "widget.html"), "utf8");
 const contentStudioHtml = readFileSync(path.join(rootDir, "public", "content-studio.html"), "utf8");
 const campaignStudioHtml = readFileSync(path.join(rootDir, "public", "campaign-studio.html"), "utf8");
 const artistOperationsHtml = readFileSync(path.join(rootDir, "public", "artist-operations.html"), "utf8");
+const audioAnalysisHtml = readFileSync(path.join(rootDir, "public", "audio-analysis.html"), "utf8");
+const fundingWorkspaceHtml = readFileSync(path.join(rootDir, "public", "funding-workspace.html"), "utf8");
 
 const phaseNames = [
   "Foundation",
@@ -341,10 +348,10 @@ function startIndexForStage(stage: z.infer<typeof stageSchema>): number {
 
 function createMusicReleaseServer(): McpServer {
   const server = new McpServer(
-    { name: "music-release-manager", version: "1.6.0" },
+    { name: "music-release-manager", version: "1.8.0" },
     {
       instructions:
-        "This server is exclusively for music—not software. It provides music-release planning, readiness checks, Norway-aware artist support, an Artist Content Studio, and ChatGPT Ads campaign briefs. It can also create read-only artist operations widgets for release summaries, metadata checklists, concert details, press-pitch drafts, content-pack selections, and manually supplied tasks or metrics. When an artist asks for release copy, promotional assets, or an ad plan, use the conversation and user-provided files as source material, do not invent biographical, release, performance, rights, pricing, or platform facts, and write requested drafts in the artist's language. Use create_artist_content_pack for copyable release assets and create_music_ad_campaign_brief for copyable campaign planning. Put unknowns in the relevant confirmation list. The ad brief does not access Ads Manager, verify availability or policy, buy advertising, add payment, launch a campaign, or collect performance data. If the artist explicitly asks you to fill fields, use only the available in-app browser and the artist's current, intended page; fill only requested fields and do not submit. Sending, publishing, scheduling, submitting, activating ads, or spending money always requires separate explicit approval. Never ask for passwords or authentication codes. Verify current funding deadlines, eligibility, ad availability, costs, formats, targeting, and platform rules with the official source before acting.",
+        "This server is exclusively for music—not software. It provides release planning, artist content, campaign briefs, audio-file analysis and a Norway funding catalog. For current funding discovery, use find_norway_funding_options with the artist's activity, applicant type and whether the activity is international. It returns possible opportunities from the catalog and the official Musikkontoret directory; eligibility, deadlines and terms remain unconfirmed until checked at the official funder page. Use create_funding_application_workspace after a possible opportunity is selected to organize an application checklist and editable draft fields. It does not submit an application. When an artist supplies audio and asks about metadata, mood or genre, use analyze_audio_file and present its creative suggestions as editable starting points. If the artist explicitly asks you to fill fields, use only the available in-app browser and the artist's current, intended page; fill only requested fields and do not submit. Sending, publishing, scheduling, submitting, activating ads, submitting applications, or spending money always requires separate explicit approval. Never ask for passwords or authentication codes.",
     }
   );
 
@@ -431,6 +438,189 @@ function createMusicReleaseServer(): McpServer {
     "operations-board",
     operationsBoardUri,
     "A release task and manually supplied performance snapshot workspace; it never creates tasks or retrieves analytics."
+  );
+
+  registerAppResource(server, "audio-analysis", audioAnalysisUri, {}, async () => ({
+    contents: [
+      {
+        uri: audioAnalysisUri,
+        mimeType: RESOURCE_MIME_TYPE,
+        text: audioAnalysisHtml,
+        _meta: widgetMetadata("An audio-file analysis workspace for detected technical properties, embedded tags, loudness, an estimated tempo, and artist-confirmed creative metadata."),
+      },
+    ],
+  }));
+
+  registerAppResource(server, "funding-workspace", fundingWorkspaceUri, {}, async () => ({
+    contents: [
+      {
+        uri: fundingWorkspaceUri,
+        mimeType: RESOURCE_MIME_TYPE,
+        text: fundingWorkspaceHtml,
+        _meta: widgetMetadata("A Norway funding matcher and application-preparation workspace that distinguishes curated matches from eligibility and deadline confirmation."),
+      },
+    ],
+  }));
+
+  const fundingActivitySchema = z.enum(fundingActivities);
+  const fundingProgramSchema = z.object({
+    id: z.string(), name: z.string(), funder: z.string(), officialUrl: z.string().url(), activities: z.array(fundingActivitySchema), applicantTypes: z.array(z.enum(["person", "organization", "either"])), scope: z.enum(["national", "international", "directory"]), summary: z.string(), eligibilityToVerify: z.array(z.string()), lastVerifiedAt: z.string(), lastSourceCheckAt: z.string().nullable(), sourceStatus: z.enum(["not-checked", "available", "needs-review"]), matchScore: z.number(), fitReasons: z.array(z.string()), status: z.literal("possible-eligibility-unconfirmed"),
+  });
+  const fundingDirectorySchema = z.object({ name: z.string(), url: z.string().url(), description: z.string(), lastVerifiedAt: z.string() });
+  const fundingStepSchema = z.object({ title: z.string(), action: z.string(), evidence: z.string(), status: z.enum(["not-started", "to-confirm", "ready"]) });
+  const fundingFormFieldSchema = z.object({ label: z.string(), value: z.string(), status: z.enum(["draft", "to-confirm"]) });
+
+  const audioFileSchema = z.object({
+    download_url: z.string().url().describe("Temporary secure download URL supplied by ChatGPT for the uploaded audio file."),
+    file_id: z.string().min(1).max(500),
+    mime_type: z.string().max(255).optional(),
+    file_name: z.string().max(500).optional(),
+  });
+  const audioTagSchema = z.object({ label: z.string(), value: z.string() });
+  const audioSuggestionSchema = z.object({ label: z.string(), value: z.string(), status: z.enum(["detected", "estimated", "to-confirm"]) });
+  const audioAnalysisOutputSchema = z.object({
+    kind: z.literal("audio-analysis"),
+    artist: z.string().nullable(),
+    trackTitle: z.string(),
+    file: z.object({ name: z.string(), mimeType: z.string().nullable(), sizeBytes: z.number().nonnegative() }),
+    technical: z.object({
+      durationSeconds: z.number().nullable(), durationLabel: z.string().nullable(), container: z.string().nullable(), codec: z.string().nullable(), sampleRateHz: z.number().nullable(), bitDepth: z.number().nullable(), sampleFormat: z.string().nullable(), bitrateKbps: z.number().nullable(), channels: z.number().nullable(), channelLayout: z.string().nullable(), embeddedTags: z.array(audioTagSchema),
+    }),
+    analysis: z.object({
+      tempoBpm: z.number().nullable(), tempoConfidence: z.enum(["not-available", "low", "medium", "high"]), energyLevel: z.enum(["not-available", "low", "moderate", "high"]), energyBasis: z.string(), integratedLufs: z.number().nullable(), loudnessRangeLu: z.number().nullable(), peakDbfs: z.number().nullable(), dynamics: z.enum(["not-available", "tight", "controlled", "dynamic"]), moodStatus: z.literal("artist-confirmation-needed"),
+    }),
+    creativeSuggestions: z.object({ genres: z.array(z.string()), genreConfidence: z.enum(["detected", "low"]), moods: z.array(z.string()), moodConfidence: z.literal("low"), basis: z.string() }),
+    metadataSuggestions: z.array(audioSuggestionSchema), limitations: z.array(z.string()), confirmBeforeUse: z.array(z.string()), privacyNote: z.string(), safetyNote: z.string(),
+  });
+
+  registerAppTool(
+    server,
+    "analyze_audio_file",
+    {
+      title: "Analyze a music audio file",
+      description:
+        "Use when an artist uploads a music audio file and asks for technical metadata, mood, or genre help. It reads the supplied file for duration, codec, sample rate, channels, bitrate, embedded tags, loudness and dynamics; makes a clearly labelled tempo estimate; and proposes broad mood and genre starting points for an artist to confirm and use in metadata drafts. Credits, rights, identifiers and release details remain artist-confirmed fields. The audio is not edited, retained, submitted or published.",
+      inputSchema: {
+        audioFile: audioFileSchema.describe("The uploaded music audio file. Accept only a file supplied by ChatGPT."),
+        artist: z.string().max(120).optional().describe("Artist name when supplied by the artist."),
+        trackTitle: z.string().max(160).optional().describe("Track title when supplied by the artist. Otherwise, detected tags or file name are shown."),
+      },
+      outputSchema: audioAnalysisOutputSchema,
+      annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false, idempotentHint: true },
+      _meta: {
+        ui: { resourceUri: audioAnalysisUri },
+        "openai/fileParams": ["audioFile"],
+        "openai/toolInvocation/invoking": "Analyzing audio file",
+        "openai/toolInvocation/invoked": "Audio analysis ready",
+      },
+    },
+    async ({ audioFile, artist, trackTitle }) => {
+      const structuredContent = await analyzeAudioFile(audioFile, artist, trackTitle);
+      return {
+        content: [{ type: "text" as const, text: `Analyzed ${structuredContent.file.name}. Review estimates and artist-confirmed fields before reuse.` }],
+        structuredContent,
+        _meta: { "openai/outputTemplate": audioAnalysisUri },
+      };
+    }
+  );
+
+  registerAppTool(
+    server,
+    "find_norway_funding_options",
+    {
+      title: "Find Norway funding options",
+      description:
+        "Use when an artist or music team in Norway wants possible funding options for recording, release marketing, live/tour activity, export, career development, equipment/studio or composition. It matches a curated catalog and returns official links, what must be verified, and the Musikkontoret directory. It does not claim that a deadline, eligibility or funding availability is current.",
+      inputSchema: {
+        artistName: z.string().min(1).max(120),
+        activities: z.array(fundingActivitySchema).min(1).max(4),
+        applicantType: z.enum(["person", "organization"]),
+        internationalActivity: z.boolean(),
+        region: z.string().max(120).optional(),
+        projectTitle: z.string().max(160).optional(),
+      },
+      outputSchema: z.object({
+        kind: z.literal("funding-match"), artistName: z.string(), projectTitle: z.string().nullable(), profileSummary: z.string(), opportunities: z.array(fundingProgramSchema), directory: fundingDirectorySchema, nextActions: z.array(z.string()), currentInfoNote: z.string(), safetyNote: z.string(),
+      }),
+      annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false, idempotentHint: true },
+      _meta: { ui: { resourceUri: fundingWorkspaceUri }, "openai/toolInvocation/invoking": "Matching funding options", "openai/toolInvocation/invoked": "Funding options ready" },
+    },
+    async ({ artistName, activities, applicantType, internationalActivity, region, projectTitle }) => {
+      const opportunities = await matchFundingPrograms({ activities, applicantType, internationalActivity, region });
+      const profileSummary = [applicantType === "organization" ? "Organization applicant" : "Individual applicant", activities.join(", "), internationalActivity ? "international activity" : "Norway-based activity"].join(" · ");
+      const nextActions = opportunities.length
+        ? ["Open the official page for the highest-ranked possible option and confirm the current deadline.", "Check applicant type, activity, eligible costs and required documents before writing the application.", "Create an application workspace only after choosing an opportunity to pursue."]
+        : ["Use Musikkontoret's directory to widen the search by region and activity.", "Confirm whether the activity is international, local or regional, then run the match again.", "Gather a short project description, period and draft budget before evaluating eligibility."];
+      const structuredContent = {
+        kind: "funding-match" as const,
+        artistName,
+        projectTitle: projectTitle ?? null,
+        profileSummary,
+        opportunities,
+        directory: fundingDirectory,
+        nextActions,
+        currentInfoNote: "These are curated possible matches, not confirmed eligibility. Current deadlines, rules, amounts and supported costs must be checked on the official funder page before an artist commits effort or money.",
+        safetyNote: "This is discovery and preparation only. It does not submit an application, save artist data, promise funding or verify a current deadline.",
+      };
+      return { content: [{ type: "text" as const, text: opportunities.length ? `Found ${opportunities.length} possible funding options for ${artistName}. Verify the official source before treating any as eligible.` : `No curated option matched this profile yet. Use the official directory to widen the search.` }], structuredContent, _meta: { "openai/outputTemplate": fundingWorkspaceUri } };
+    }
+  );
+
+  registerAppTool(
+    server,
+    "create_funding_application_workspace",
+    {
+      title: "Create funding application workspace",
+      description:
+        "Use after an artist selects a possible funding opportunity and wants a practical, editable application-preparation checklist. It organizes only the supplied project facts, identifies verification gaps and prepares draft field values. It does not save data, open a funder's site, submit an application or make an eligibility decision.",
+      inputSchema: {
+        opportunityId: z.string().min(1).max(160),
+        artistName: z.string().min(1).max(120),
+        projectTitle: z.string().min(1).max(160),
+        projectSummary: z.string().min(1).max(3_000),
+        activityPeriod: z.string().max(160).optional(),
+        knownDocuments: z.array(z.string().max(240)).max(16).default([]),
+      },
+      outputSchema: z.object({
+        kind: z.literal("funding-application-workspace"), artistName: z.string(), projectTitle: z.string(), projectSummary: z.string(), activityPeriod: z.string().nullable(), opportunity: z.object({ id: z.string(), name: z.string(), funder: z.string(), officialUrl: z.string().url(), summary: z.string(), lastVerifiedAt: z.string(), sourceStatus: z.enum(["not-checked", "available", "needs-review"]) }), applicationSteps: z.array(fundingStepSchema), formFields: z.array(fundingFormFieldSchema), requiredDocuments: z.array(z.string()), eligibilityToVerify: z.array(z.string()), knownDocuments: z.array(z.string()), currentInfoNote: z.string(), safetyNote: z.string(),
+      }),
+      annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false, idempotentHint: true },
+      _meta: { ui: { resourceUri: fundingWorkspaceUri }, "openai/toolInvocation/invoking": "Preparing funding workspace", "openai/toolInvocation/invoked": "Funding workspace ready" },
+    },
+    async ({ opportunityId, artistName, projectTitle, projectSummary, activityPeriod, knownDocuments }) => {
+      const opportunity = (await getFundingPrograms()).find((program) => program.id === opportunityId);
+      if (!opportunity) throw new Error("The selected funding opportunity was not found in the current catalog.");
+      const applicationSteps = [
+        { title: "Verify the current call", action: "Open the official source and confirm that the call, deadline and activity are current before preparing an application.", evidence: "Official page URL, checked date and saved eligibility notes.", status: "to-confirm" as const },
+        { title: "Check eligibility", action: "Compare artist or organization status, project timing, geography and costs with the funder's current requirements.", evidence: "A written yes/no note for every listed eligibility condition.", status: "to-confirm" as const },
+        { title: "Define the project", action: "Keep the project purpose, audience, activity plan and desired result consistent with the submitted budget and timeline.", evidence: "Artist-approved project description and dated activity plan.", status: "not-started" as const },
+        { title: "Prepare budget and financing", action: "List costs, funding sources and any own contribution. Label estimates, offers and confirmed amounts separately.", evidence: "Line-item budget, financing plan and relevant quotes.", status: "not-started" as const },
+        { title: "Review before submission", action: "Confirm claims, rights, attachments, bank/account requirements and reporting obligations with the artist and official source.", evidence: "Final review checklist completed by the applicant.", status: "not-started" as const },
+      ];
+      const formFields = [
+        { label: "Project title", value: projectTitle, status: "draft" as const },
+        { label: "Applicant / artist", value: artistName, status: "draft" as const },
+        { label: "Project description", value: projectSummary, status: "draft" as const },
+        { label: "Activity period", value: activityPeriod ?? "To confirm", status: activityPeriod ? "draft" as const : "to-confirm" as const },
+      ];
+      const requiredDocuments = ["Project description", "Dated activity plan", "Line-item budget and financing plan", "Current official eligibility notes", "Required quotes, invitations, agreements or confirmations listed by the funder"];
+      const structuredContent = {
+        kind: "funding-application-workspace" as const,
+        artistName,
+        projectTitle,
+        projectSummary,
+        activityPeriod: activityPeriod ?? null,
+        opportunity: { id: opportunity.id, name: opportunity.name, funder: opportunity.funder, officialUrl: opportunity.officialUrl, summary: opportunity.summary, lastVerifiedAt: opportunity.lastVerifiedAt, sourceStatus: opportunity.sourceStatus },
+        applicationSteps,
+        formFields,
+        requiredDocuments,
+        eligibilityToVerify: opportunity.eligibilityToVerify,
+        knownDocuments,
+        currentInfoNote: "This workspace is a preparation draft. Confirm the current funder page, deadline, eligibility, required attachments and reporting terms before completing or submitting any form.",
+        safetyNote: "Nothing has been saved, submitted, sent or promised. The artist or applicant must review every claim and approve submission separately.",
+      };
+      return { content: [{ type: "text" as const, text: `Prepared an application workspace for ${opportunity.name}. No application has been opened or submitted.` }], structuredContent, _meta: { "openai/outputTemplate": fundingWorkspaceUri } };
+    }
   );
 
   registerAppTool(
@@ -1052,6 +1242,30 @@ createServer(async (req, res) => {
   if (req.method === "GET" && url.pathname === "/next-widgets-preview/artist-operations.html") {
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     res.end(readFileSync(path.join(rootDir, "public", "artist-operations.html"), "utf8"));
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/audio-analysis-preview") {
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    res.end(readFileSync(path.join(rootDir, "public", "audio-analysis-preview.html"), "utf8"));
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/audio-analysis-preview/audio-analysis.html") {
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    res.end(readFileSync(path.join(rootDir, "public", "audio-analysis.html"), "utf8"));
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/funding-preview") {
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    res.end(readFileSync(path.join(rootDir, "public", "funding-preview.html"), "utf8"));
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/funding-preview/funding-workspace.html") {
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    res.end(readFileSync(path.join(rootDir, "public", "funding-workspace.html"), "utf8"));
     return;
   }
 

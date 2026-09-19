@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Music Release Manager - Audio analysis</title>
+    <style>
+      :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #11100e; color: #f6f1e8; }
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 18px; }
+      main { max-width: 860px; margin: 0 auto; }
+      .brand { color: #eeb745; font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+      h1 { margin: 6px 0 2px; font-size: clamp(24px, 5vw, 34px); line-height: 1.12; }
+      .subtitle, .muted { margin: 0; color: #bcb4a8; line-height: 1.5; }
+      .file { display: flex; gap: 10px; align-items: center; margin-top: 16px; color: #d9d0c0; font-size: 13px; overflow-wrap: anywhere; }
+      .file-badge, .tag { display: inline-flex; align-items: center; width: fit-content; padding: 4px 8px; border-radius: 4px; background: #26231e; color: #eec15d; font-size: 11px; font-weight: 700; letter-spacing: .03em; }
+      .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 20px 0; }
+      .metric { min-width: 0; padding: 14px 0; border-top: 1px solid #403b33; }
+      .metric-label, dt { color: #aaa194; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+      .metric-value { margin-top: 5px; font-size: 21px; font-weight: 750; overflow-wrap: anywhere; }
+      .metric-help { margin-top: 3px; color: #aaa194; font-size: 12px; line-height: 1.35; }
+      .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 26px; }
+      section { min-width: 0; padding: 18px 0; border-top: 1px solid #403b33; }
+      h2 { margin: 0 0 12px; font-size: 15px; }
+      dl { display: grid; grid-template-columns: minmax(100px, .8fr) minmax(0, 1.2fr); gap: 10px 14px; margin: 0; }
+      dd { margin: 0; color: #f3eee5; font-size: 14px; text-align: right; overflow-wrap: anywhere; }
+      .stack { display: grid; gap: 8px; }
+      .item { display: grid; grid-template-columns: minmax(100px, .8fr) minmax(0, 1.2fr); gap: 14px; align-items: start; padding: 10px 0; border-top: 1px solid #29261f; }
+      .item:first-child { border-top: 0; padding-top: 0; }
+      .item-title { color: #c6bdb0; font-size: 13px; }
+      .item-value { color: #f4eee3; font-size: 13px; text-align: right; overflow-wrap: anywhere; }
+      .status { display: inline-flex; margin-top: 4px; padding: 2px 6px; border-radius: 3px; background: #29261f; color: #bcb4a8; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+      .status.detected { color: #8fd7a6; }.status.estimated { color: #f0c56a; }.status.to-confirm { color: #e5ac98; }
+      .notice { margin-top: 14px; padding: 12px 0; border-top: 1px solid #403b33; color: #c9c0b2; font-size: 13px; line-height: 1.5; }
+      ul { margin: 0; padding-left: 18px; color: #c9c0b2; font-size: 13px; line-height: 1.55; }
+      .empty { color: #aaa194; font-size: 13px; }
+      @media (max-width: 580px) { body { padding: 14px; }.metrics, .layout { grid-template-columns: 1fr; gap: 0; }.metrics { margin-bottom: 10px; }.metric { padding: 12px 0; } }
+    </style>
+  </head>
+  <body>
+    <main id="app" aria-live="polite"></main>
+    <script>
+      let output = null;
+      const esc = (value) => String(value ?? "").replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
+      const display = (value, fallback = "Not available") => value === null || value === undefined || value === "" ? fallback : esc(value);
+      const formatNumber = (value, suffix = "") => value === null || value === undefined ? "Not available" : `${esc(value)}${suffix}`;
+      const list = (items, empty) => items?.length ? `<div class="stack">${items.map((item) => `<div class="item"><div class="item-title">${esc(item.label)}</div><div class="item-value">${esc(item.value)}${item.status ? `<div class="status ${esc(item.status)}">${esc(item.status.replace("-", " "))}</div>` : ""}</div></div>`).join("")}</div>` : `<p class="empty">${esc(empty)}</p>`;
+      const bulletList = (items, empty) => items?.length ? `<ul>${items.map((item) => `<li>${esc(item)}</li>`).join("")}</ul>` : `<p class="empty">${esc(empty)}</p>`;
+
+      function render() {
+        const app = document.getElementById("app");
+        if (!output) { app.innerHTML = `<p class="muted">Audio analysis will appear here.</p>`; return; }
+        const analysis = output.analysis;
+        const technical = output.technical;
+        app.innerHTML = `
+          <div class="brand">Music Release Manager</div>
+          <h1>${esc(output.trackTitle)}</h1>
+          <p class="subtitle">${output.artist ? esc(output.artist) : "Artist to confirm"} · Audio analysis</p>
+          <div class="file"><span class="file-badge">FILE</span><span>${esc(output.file.name)} · ${Math.max(1, Math.round(output.file.sizeBytes / 1024 / 1024))} MB</span></div>
+          <div class="metrics">
+            <div class="metric"><div class="metric-label">Duration</div><div class="metric-value">${display(technical.durationLabel)}</div><div class="metric-help">Detected from file</div></div>
+            <div class="metric"><div class="metric-label">Tempo</div><div class="metric-value">${analysis.tempoBpm ? `${esc(analysis.tempoBpm)} BPM` : "Not available"}</div><div class="metric-help">${esc(analysis.tempoConfidence)} confidence estimate</div></div>
+            <div class="metric"><div class="metric-label">Energy</div><div class="metric-value">${esc(analysis.energyLevel)}</div><div class="metric-help">Measured intensity estimate</div></div>
+          </div>
+          <div class="layout">
+            <section><h2>Technical file data</h2><dl>
+              <dt>Container</dt><dd>${display(technical.container)}</dd><dt>Codec</dt><dd>${display(technical.codec)}</dd><dt>Sample rate</dt><dd>${formatNumber(technical.sampleRateHz, " Hz")}</dd><dt>Bit depth</dt><dd>${formatNumber(technical.bitDepth, " bit")}</dd><dt>Bitrate</dt><dd>${formatNumber(technical.bitrateKbps, " kbps")}</dd><dt>Channels</dt><dd>${formatNumber(technical.channels)}</dd>
+            </dl></section>
+            <section><h2>Signal analysis</h2><dl>
+              <dt>Integrated loudness</dt><dd>${formatNumber(analysis.integratedLufs, " LUFS")}</dd><dt>Loudness range</dt><dd>${formatNumber(analysis.loudnessRangeLu, " LU")}</dd><dt>Peak</dt><dd>${formatNumber(analysis.peakDbfs, " dBFS")}</dd><dt>Dynamics</dt><dd>${esc(analysis.dynamics)}</dd><dt>Mood confidence</dt><dd>Low · artist confirms</dd>
+            </dl><p class="notice">${esc(analysis.energyBasis)}</p></section>
+            <section><h2>Creative starting points</h2><div class="stack">
+              <div class="item"><div class="item-title">Genre</div><div class="item-value">${output.creativeSuggestions.genres.map(esc).join(" · ")}<div class="status ${esc(output.creativeSuggestions.genreConfidence)}">${esc(output.creativeSuggestions.genreConfidence)}</div></div></div>
+              <div class="item"><div class="item-title">Mood</div><div class="item-value">${output.creativeSuggestions.moods.map(esc).join(" · ")}<div class="status estimated">Low confidence</div></div></div>
+            </div><p class="notice">${esc(output.creativeSuggestions.basis)}</p></section>
+            <section><h2>Detected embedded tags</h2>${list(technical.embeddedTags, "No supported embedded tags were detected.")}</section>
+            <section><h2>Metadata suggestions</h2>${list(output.metadataSuggestions, "No suggestions available.")}</section>
+            <section><h2>Confirm before use</h2>${bulletList(output.confirmBeforeUse, "No confirmation items.")}</section>
+            <section><h2>Analysis limits</h2>${bulletList(output.limitations, "Technical measurement completed. Tempo, mood, and genre candidates remain estimates until the artist confirms them.")}</section>
+          </div>
+          <p class="notice">${esc(output.privacyNote)}</p><p class="notice">${esc(output.safetyNote)}</p>`;
+      }
+
+      window.addEventListener("message", (event) => {
+        if (event.source !== window.parent) return;
+        const message = event.data;
+        if (message?.jsonrpc === "2.0" && message.method === "ui/notifications/tool-result") { output = message.params?.structuredContent ?? output; render(); }
+        if (message?.jsonrpc === "2.0" && message.id === "initialize" && message.result) window.parent.postMessage({ jsonrpc: "2.0", method: "ui/notifications/initialized", params: {} }, "*");
+      }, { passive: true });
+      window.parent.postMessage({ jsonrpc: "2.0", id: "initialize", method: "ui/initialize", params: { appInfo: { name: "music-release-manager", version: "1.8.0" }, appCapabilities: {}, protocolVersion: "2026-01-26" } }, "*");
+      render();
+    </script>
+  </body>
+</html>
